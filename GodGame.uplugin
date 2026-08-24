@@ -1,0 +1,24 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "0.1.0",
+	"FriendlyName": "God Game",
+	"Description": "Prototype for an old-school God Game.",
+	"Category": "Gameplay",
+	"CreatedBy": "Trent Polack",
+    "CreatedByURL": "https://trentpolack.com",
+	"CanContainContent": true,
+	"Modules": [
+		{
+			"Name": "GodGame",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "JoyCore",
+			"Enabled": true
+		}
+	]
+}
