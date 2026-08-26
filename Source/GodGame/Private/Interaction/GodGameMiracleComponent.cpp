@@ -9,6 +9,8 @@
 #include "Data/GodGameMiracleDefinition.h"
 #include "Interaction/GodGameMiraclePreviewActor.h"
 #include "Simulation/GodGameWorldSubsystem.h"
+#include "Utilities/GodGameBlueprintLibrary.h"
+#include "DrawDebugHelpers.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(GodGameMiracleComponent)
 
@@ -150,12 +152,6 @@ FGodGameMiracleCastCheck UGodGameMiracleComponent::CanCastMiracle(UGodGameMiracl
         return Result;
     }
 
-    if(!IsValid(Miracle->MiracleActorClass))
-    {
-        Fail(EGodGameMiracleCastFailure::SpawnFailed, NSLOCTEXT("GodGame", "NoEffectClass", "Miracle has no effect actor class."));
-        return Result;
-    }
-
     // Can cast.
     Result.bCanCast = true;
     Result.FailureReason = EGodGameMiracleCastFailure::None;
@@ -196,16 +192,26 @@ bool UGodGameMiracleComponent::CastMiracleFromHit(UGodGameMiracleDefinition* Mir
     Params.Instigator = GetOwner() ? GetOwner()->GetInstigator() : nullptr;
     Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
-    SpawnedActor = pWorld->SpawnActor<AActor>(Miracle->MiracleActorClass, Hit.ImpactPoint, SpawnRotation, Params);
-    if(!SpawnedActor)
+    if(IsValid(Miracle->MiracleActorClass))
     {
-        // Do not charge the player for an effect actor that failed to spawn.
-        Sim->AddInfluence(Miracle->InfluenceCost);
-        OutResult.bCanCast = false;
-        OutResult.FailureReason = EGodGameMiracleCastFailure::SpawnFailed;
-        OutResult.Message = NSLOCTEXT("GodGame", "SpawnFailed", "Miracle effect failed to spawn.");
-        return false;
+		SpawnedActor = pWorld->SpawnActor<AActor>(Miracle->MiracleActorClass, Hit.ImpactPoint, SpawnRotation, Params);
+		if(!SpawnedActor)
+		{
+			Sim->AddInfluence(Miracle->InfluenceCost);
+			OutResult.bCanCast = false;
+			OutResult.FailureReason = EGodGameMiracleCastFailure::SpawnFailed;
+			OutResult.Message = NSLOCTEXT("GodGame", "SpawnFailed", "Miracle effect failed to spawn.");
+			return false;
+		}
     }
+
+	// Native prototype fallback: every miracle visibly pulses and improves nearby wellbeing/faith.
+	// Blueprint effect actors remain free to add authored presentation and specialized behavior.
+	const float Radius = FMath::Max(100.0f, Miracle->EffectRadius);
+	DrawDebugSphere(pWorld, Hit.ImpactPoint, Radius, 32, FColor(60, 170, 255), false, 2.0f, 0, 5.0f);
+	UGodGameBlueprintLibrary::ModifyNeedInRadius(this, Hit.ImpactPoint, Radius, EVillagerNeed::Hunger, 0.25f, FGameplayTagContainer());
+	UGodGameBlueprintLibrary::ModifyNeedInRadius(this, Hit.ImpactPoint, Radius, EVillagerNeed::Safety, 0.10f, FGameplayTagContainer());
+	UGodGameBlueprintLibrary::ModifyFaithInRadius(this, Hit.ImpactPoint, Radius, 0.08f, FGameplayTagContainer());
 
     LastCastTimes.Add(Miracle, pWorld->GetTimeSeconds());
     

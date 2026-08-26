@@ -9,6 +9,9 @@
 
 #include "GodGamePlayerController.generated.h"
 
+class UGodGameMiracleComponent;
+class UGodGameMiracleDefinition;
+
 /** Broadcast when the controller changes its selected actor. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnGodGameSelectionChanged, AActor*, NewSelection, AActor*, PreviousSelection);
 
@@ -18,11 +21,34 @@ class GODGAME_API AGodGamePlayerController : public APlayerController
 {
 	GENERATED_BODY()
 
+protected:
+	// APlayerController.
+	virtual void BeginPlay() override;
+	virtual void SetupInputComponent() override;
+	// ~APlayerController.
+
+	virtual void HandlePrimaryAction();
+	virtual void HandleSecondaryAction();
+	virtual void SelectRainMiracle();
+	virtual void RefreshPrototypeHUD() const;
+
 public:
 	/**
 	 * Constructor.
 	 */
 	AGodGamePlayerController();
+
+	// Miracle casting state. Created natively so the prototype controller works without Blueprint setup.
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "GodGame|Miracle")
+	TObjectPtr<UGodGameMiracleComponent> MiracleComponent;
+
+	// Rain definition selected on play and when the 1 key is pressed.
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "GodGame|Miracle")
+	TSoftClassPtr<UGodGameMiracleDefinition> RainMiracleClass;
+
+	// Shows prototype controls and simulation state using the engine debug HUD.
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "GodGame|Prototype")
+	uint8 bShowPrototypeHUD : 1 = true;
 
 	// Collision channel used by cursor line traces.
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "GodGame|Cursor")
@@ -68,4 +94,8 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "GodGame|Selection")
 	void ClearSelection();
+
+	// APlayerController.
+	virtual void PlayerTick(float DeltaTime) override;
+	// ~APlayerController.
 };

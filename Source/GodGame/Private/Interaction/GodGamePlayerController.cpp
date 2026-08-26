@@ -4,18 +4,118 @@
 #include "Interaction/GodGamePlayerController.h"
 
 #include "GameFramework/Pawn.h"
+#include "Engine/Engine.h"
+#include "InputCoreTypes.h"
 
+#include "Data/GodGameMiracleDefinition.h"
+#include "Interaction/GodGameMiracleComponent.h"
 #include "Interaction/GodGameTagComponent.h"
+#include "Simulation/GodGameWorldSubsystem.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(GodGamePlayerController)
 
 // Constructor.
 AGodGamePlayerController::AGodGamePlayerController()
 {
+	PrimaryActorTick.bCanEverTick = true;
     bShowMouseCursor = true;
     bEnableClickEvents = true;
     bEnableMouseOverEvents = true;
     DefaultMouseCursor = EMouseCursor::Default;
+	MiracleComponent = CreateDefaultSubobject<UGodGameMiracleComponent>(TEXT("MiracleComponent"));
+	RainMiracleClass = TSoftClassPtr<UGodGameMiracleDefinition>(FSoftObjectPath(TEXT("/GodGame/Data/Miracles/Rain_Miracle.Rain_Miracle_C")));
+}
+
+// Begin Play.
+void AGodGamePlayerController::BeginPlay()
+{
+	Super::BeginPlay();
+
+	FInputModeGameAndUI InputMode;
+	InputMode.SetHideCursorDuringCapture(false);
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	
+	SetInputMode(InputMode);
+	SelectRainMiracle();
+}
+
+// Input setup.
+//	TODO (trent, 8/26/26): Hacky, expose to the editor.
+void AGodGamePlayerController::SetupInputComponent()
+{
+	Super::SetupInputComponent();
+	if(InputComponent)
+	{
+		InputComponent->BindKey(EKeys::LeftMouseButton, IE_Pressed, this, &ThisClass::HandlePrimaryAction);
+		InputComponent->BindKey(EKeys::RightMouseButton, IE_Pressed, this, &ThisClass::HandleSecondaryAction);
+		InputComponent->BindKey(EKeys::One, IE_Pressed, this, &ThisClass::SelectRainMiracle);
+		InputComponent->BindKey(EKeys::Escape, IE_Pressed, this, &ThisClass::ClearSelection);
+	}
+}
+
+// Player tick.
+void AGodGamePlayerController::PlayerTick(float DeltaTime)
+{
+	Super::PlayerTick(DeltaTime);
+
+	FHitResult Hit;
+	if(TraceGodCursor(Hit))
+	{
+		MiracleComponent->UpdatePreview(Hit);
+	}
+	else
+	{
+		MiracleComponent->HidePreview();
+	}
+	
+	RefreshPrototypeHUD();
+}
+
+void AGodGamePlayerController::HandlePrimaryAction()
+{
+	FHitResult Hit;
+	if(!TraceGodCursor(Hit))
+	{
+		return;
+	}
+	AActor* SpawnedActor = nullptr;
+	FGodGameMiracleCastCheck Result;
+	if(!MiracleComponent->CastSelectedMiracleFromHit(Hit, SpawnedActor, Result) && GEngine && !Result.Message.IsEmpty())
+	{
+		GEngine->AddOnScreenDebugMessage(7002, 2.0f, FColor::Red, Result.Message.ToString());
+	}
+}
+
+void AGodGamePlayerController::HandleSecondaryAction()
+{
+	SelectActorUnderCursor();
+}
+
+void AGodGamePlayerController::SelectRainMiracle()
+{
+	if(UClass* MiracleClass = RainMiracleClass.LoadSynchronous())
+	{
+		MiracleComponent->SelectMiracle(MiracleClass->GetDefaultObject<UGodGameMiracleDefinition>());
+	}
+}
+
+void AGodGamePlayerController::RefreshPrototypeHUD() const
+{
+	if(!bShowPrototypeHUD || !GEngine)
+	{
+		return;
+	}
+	const UGodGameWorldSubsystem* Simulation = GetWorld() ? GetWorld()->GetSubsystem<UGodGameWorldSubsystem>() : nullptr;
+	const float Influence = Simulation ? Simulation->GetInfluence() : 0.0f;
+	const int32 Believers = Simulation ? Simulation->BelieverCount : 0;
+	FString MiracleName = MiracleComponent && MiracleComponent->SelectedMiracle
+		? MiracleComponent->SelectedMiracle->DisplayName.ToString() : TEXT("None");
+	if(MiracleName.IsEmpty() && MiracleComponent && MiracleComponent->SelectedMiracle)
+	{
+		MiracleName = MiracleComponent->SelectedMiracle->GetName();
+	}
+	const FString Status = FString::Printf(TEXT("GOD GAME  |  Influence %.0f  |  Believers %d  |  Miracle: %s\nLMB cast  |  RMB select  |  1 rain  |  Esc clear"), Influence, Believers, *MiracleName);
+	GEngine->AddOnScreenDebugMessage(7001, 0.05f, FColor(120, 220, 255), Status);
 }
 
 // Traces from the mouse cursor into the world using CursorTraceChannel.

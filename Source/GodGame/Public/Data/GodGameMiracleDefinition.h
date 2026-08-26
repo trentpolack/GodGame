@@ -67,7 +67,7 @@ public:
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Miracle|Targeting")
 	uint8 bAlignToSurfaceNormal : 1 = false;
 
-	// Spawned when the miracle is actually cast. Usually a short-lived Blueprint effect actor.
+	// Optionally spawned when the miracle is cast. Native fallback gameplay still applies when unset.
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Miracle|Actors")
 	TSubclassOf<AActor> MiracleActorClass = nullptr;
 

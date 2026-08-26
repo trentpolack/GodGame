@@ -18,7 +18,7 @@ class UGodGameMiracleDefinition;
 /** Broadcast when the component's selected miracle changes. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSelectedMiracleChanged, UGodGameMiracleDefinition*, NewMiracle);
 
-/** Broadcast after a miracle effect actor is spawned and its cost and cooldown are committed. */
+/** Broadcast after a miracle is applied and its cost and cooldown are committed. SpawnedEffectActor may be null. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMiracleCast, UGodGameMiracleDefinition*, Miracle, AActor*, SpawnedEffectActor);
 
 // Owns the player's current miracle selection, cast validation, cooldowns, and optional preview actor.
@@ -59,7 +59,7 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "GodGame|Events|Miracle")
 	FOnSelectedMiracleChanged OnSelectedMiracleChanged;
 
-	// Event raised after a miracle is cast successfully.
+	// Event raised after a miracle is cast successfully; its actor parameter may be null for native fallback effects.
 	UPROPERTY(BlueprintAssignable, Category = "GodGame|Events|Miracle")
 	FOnMiracleCast OnMiracleCast;
 
