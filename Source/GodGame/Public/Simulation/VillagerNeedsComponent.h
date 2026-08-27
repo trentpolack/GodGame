@@ -14,7 +14,7 @@
 /** Broadcast when a villager need's satisfaction changes. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnNeedChanged, EVillagerNeed, Need, float, NewValue, float, Delta);
 
-/** Coarse needs model intended to feed StateTree/Blueprint decisions, not replace a full AI system. */
+// Coarse needs model intended to feed StateTree/Blueprint decisions, not replace a full AI system.
 UCLASS(ClassGroup=(GodGame), meta = (BlueprintSpawnableComponent))
 class GODGAME_API UVillagerNeedsComponent : public UActorComponent
 {

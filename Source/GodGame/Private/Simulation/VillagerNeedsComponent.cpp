@@ -20,7 +20,7 @@ float UVillagerNeedsComponent::ModifyNeed(EVillagerNeed Need, float Delta)
         return(SetNeedValue(Need, pState->Value + Delta));
     }
 
-    // Missing entries are created on demand, which is convenient for content-side experiments.
+    // Missing entries are created on demand.
     FGodGameNeedState& NewState = Needs.AddDefaulted_GetRef();
     NewState.Need = Need;
     NewState.Value = FMath::Clamp(Delta, 0.0f, 1.0f);
