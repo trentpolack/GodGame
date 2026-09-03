@@ -7,6 +7,9 @@
 
 #include "Modules/ModuleManager.h"
 
+// Log declaration.
+DECLARE_LOG_CATEGORY_EXTERN(LogGodGame, Log, All);
+
 /** Runtime module responsible for registering the God Game plugin's gameplay tag search path. */
 class FGodGameModule : public IModuleInterface
 {

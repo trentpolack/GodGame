@@ -34,12 +34,15 @@ protected:
 	TMap<const UGodGameMiracleDefinition*, double> MiracleLastCastTimeMap;
 
 	// Sane defaults for a native fallback Miracle.
-	static const float DefaultMiracleRadius;
-	static const float DefaultMiracleHungerModifier;
-	static const float DefaultMiracleSafetyModifier;
-	static const float DefaultMiracleFaithModifier;
+	static const float kMinimumMiracleRadius;
 
-	static const FColor DefaultMiracleDebugDrawColor;
+	static const float kDefaultMiracleHungerModifier;
+	static const float kDefaultMiracleRestModifier;
+	static const float kDefaultMiracleFearModifier;
+	static const float kDefaultMiracleFaithModifier;
+	static const float kDefaultMiracleSocializationModifier;
+
+	static const FColor kDefaultMiracleDebugDrawColor;
 	
 	/**
 	 * Resolves the location used for range checks.
@@ -119,7 +122,7 @@ public:
 	 * @return True when the selected miracle's effect actor spawned successfully.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "GodGame|Miracle")
-	bool CastSelectedMiracleFromHit(const FHitResult& Hit, AActor*& SpawnedActor, FGodGameMiracleCastCheck& OutResult);
+	bool CastSelectedMiracleFromHit(const FHitResult& Hit, AActor*& SpawnedActor, FGodGameMiracleCastCheck& ResultOut);
 
 	/**
 	 * Updates the selected miracle's preview while the player is aiming, creating it lazily when needed.

@@ -11,11 +11,11 @@
 #include "Systems/Events/SystemicEvent.h"
 #include "Systems/Traits/SystemicTraitComponent.h"
 
-#include "Interaction/GodGameReactionInterface.h"
-#include "Simulation/FaithComponent.h"
+#include "Gameplay/GodGameReactionInterface.h"
+#include "Simulation/CharacterFaithComponent.h"
 #include "Simulation/GodGameWorldSubsystem.h"
 #include "Simulation/VillageResourceComponent.h"
-#include "Simulation/VillagerNeedsComponent.h"
+#include "Simulation/CharacterNeedsComponent.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(GodGameBlueprintLibrary)
 
@@ -93,54 +93,39 @@ TArray<AActor*> UGodGameBlueprintLibrary::GetGodGameActorsInRadius(const UObject
 }
 
 // Modifies the specified need by a given delta for all actors within a given radius that meet the required traits.
-int32 UGodGameBlueprintLibrary::ModifyNeedInRadius(const UObject* WorldContextObject, FVector Origin, float Radius, EVillagerNeed Need, float Delta, const FGameplayTagContainer& RequiredTraits)
+int32 UGodGameBlueprintLibrary::ModifyNeedInRadius(const UObject* WorldContextObject, FVector Origin, float Radius, const FGameplayTag& NeedTag, float Delta, const FGameplayTagContainer& RequiredTraits)
 {
 	return GodGameBlueprintLibraryPrivate::ForEachActorInRadius(WorldContextObject, Origin, Radius, RequiredTraits,
-	                                                            [Need, Delta](AActor* Actor)
-	                                                            {
-		                                                            if(UVillagerNeedsComponent* pVillagerNeeds = Actor->FindComponentByClass<UVillagerNeedsComponent>())
-		                                                            {
-			                                                            pVillagerNeeds->ModifyNeed(Need, Delta);
-			                                                            return true;
-		                                                            }
+	    [NeedTag, Delta](AActor* Actor)
+	    {
+	        if(UCharacterNeedsComponent* pVillagerNeeds = Actor->FindComponentByClass<UCharacterNeedsComponent>())
+	        {
+	            pVillagerNeeds->ModifyNeed(NeedTag, Delta);
+	            return true;
+	        }
 
-	                                                            	return false;
-	                                                            });
-}
-
-// Applies a faith delta to matching actors with FaithComponent. Returns affected actor count.
-int32 UGodGameBlueprintLibrary::ModifyFaithInRadius(const UObject* WorldContextObject, FVector Origin, float Radius, float Delta, const FGameplayTagContainer& RequiredTraits)
-{
-	return GodGameBlueprintLibraryPrivate::ForEachActorInRadius(WorldContextObject, Origin, Radius, RequiredTraits,
-	                                                            [Delta](AActor* Actor)
-	                                                            {
-		                                                            if(UFaithComponent* pFaith = Actor->FindComponentByClass<UFaithComponent>())
-		                                                            {
-			                                                            pFaith->ModifyFaith(Delta);
-			                                                            return true;
-		                                                            }
-		                                                            return false;
-	                                                            });
+	        return false;
+	    });
 }
 
 // Adds/consumes a tagged village resource on matching actors with VillageResourceComponent.
-int32 UGodGameBlueprintLibrary::ModifyResourceInRadius(const UObject* WorldContextObject, FVector Origin, float Radius, FGameplayTag ResourceTag, float Delta, const FGameplayTagContainer& RequiredTraits)
+int32 UGodGameBlueprintLibrary::ModifyResourceInRadius(const UObject* WorldContextObject, FVector Origin, float Radius, const FGameplayTag& ResourceTag, float Delta, const FGameplayTagContainer& RequiredTraits)
 {
 	return GodGameBlueprintLibraryPrivate::ForEachActorInRadius(WorldContextObject, Origin, Radius, RequiredTraits,
-	                                                            [ResourceTag, Delta](AActor* Actor)
-	                                                            {
-		                                                            if(UVillageResourceComponent* pVillageResources = Actor->FindComponentByClass<UVillageResourceComponent>())
-		                                                            {
-			                                                            pVillageResources->AddResource(ResourceTag, Delta);
-			                                                            return true;
-		                                                            }
-	                                                            	
-		                                                            return false;
-	                                                            });
+	    [ResourceTag, Delta](AActor* Actor)
+	    {
+	        if(UVillageResourceComponent* pVillageResources = Actor->FindComponentByClass<UVillageResourceComponent>())
+	        {
+	            pVillageResources->AddResource(ResourceTag, Delta);
+	            return true;
+	        }
+	        
+	        return false;
+	    });
 }
 
 // Emits a JoyCore systemic event and invokes the legacy Blueprint reaction interface on matching actors.
-int32 UGodGameBlueprintLibrary::SendReactionInRadius(const UObject* WorldContextObject, FVector Origin, float Radius, FGameplayTag ReactionTag, float Strength, AActor* SourceActor, const FGameplayTagContainer& RequiredTraits)
+int32 UGodGameBlueprintLibrary::SendReactionInRadius(const UObject* WorldContextObject, FVector Origin, float Radius, const FGameplayTag& ReactionTag, float Strength, AActor* SourceActor, const FGameplayTagContainer& RequiredTraits)
 {
 	if(!ReactionTag.IsValid())
 	{
@@ -148,29 +133,29 @@ int32 UGodGameBlueprintLibrary::SendReactionInRadius(const UObject* WorldContext
 	}
 
 	return GodGameBlueprintLibraryPrivate::ForEachActorInRadius(WorldContextObject, Origin, Radius, RequiredTraits,
-	                                                            [ReactionTag, Strength, Origin, SourceActor](
-	                                                            AActor* Actor)
-	                                                            {
-		                                                            FSystemicEvent Event;
-		                                                            Event.EventTag = ReactionTag;
-		                                                            Event.Subject = ESystemicEventSubject::Target;
-		                                                            Event.Source = SourceActor;
-		                                                            Event.Instigator = SourceActor;
-		                                                            Event.Target = Actor;
+	    [ReactionTag, Strength, Origin, SourceActor](
+	    AActor* Actor)
+	    {
+	        FSystemicEvent Event;
+	        Event.EventTag = ReactionTag;
+	        Event.Subject = ESystemicEventSubject::Target;
+	        Event.Source = SourceActor;
+	        Event.Instigator = SourceActor;
+	        Event.Target = Actor;
 
-		                                                            FSystemicEventData& EventData = Event.GetEventDataMutable<FSystemicEventData>();
-		                                                            EventData.Location = Origin;
-		                                                            EventData.Value = Strength;
+	        FSystemicEventData& EventData = Event.GetEventDataMutable<FSystemicEventData>();
+	        EventData.Location = Origin;
+	        EventData.Value = Strength;
 
-		                                                            const bool bEmittedSystemicEvent = USystemicWorldSubsystem::EmitEvent(Actor, Event);
-		                                                            bool bInvokedLegacyReaction = false;
+	        const bool bEmittedSystemicEvent = USystemicWorldSubsystem::EmitEvent(Actor, Event);
+	        bool bInvokedLegacyReaction = false;
 
-	                                                            	if(Actor->GetClass()->ImplementsInterface(UGodGameReactionInterface::StaticClass()) && IGodGameReactionInterface::Execute_CanReceiveGodGameReaction(Actor, ReactionTag, SourceActor))
-		                                                            {
-			                                                            IGodGameReactionInterface::Execute_ReceiveGodGameReaction(Actor, ReactionTag, Strength, Origin, SourceActor);
-			                                                            bInvokedLegacyReaction = true;
-		                                                            }
+	        if(Actor->GetClass()->ImplementsInterface(UGodGameReactionInterface::StaticClass()) && IGodGameReactionInterface::Execute_CanReceiveGodGameReaction(Actor, ReactionTag, SourceActor))
+	        {
+	            IGodGameReactionInterface::Execute_ReceiveGodGameReaction(Actor, ReactionTag, Strength, Origin, SourceActor);
+	            bInvokedLegacyReaction = true;
+	        }
 
-		                                                            return(bEmittedSystemicEvent || bInvokedLegacyReaction);
-	                                                            });
+	        return(bEmittedSystemicEvent || bInvokedLegacyReaction);
+	    });
 }

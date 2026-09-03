@@ -10,7 +10,7 @@
 #include "GodGameWorldSubsystem.generated.h"
 
 // Declarations.
-class UFaithComponent;
+class UCharacterFaithComponent;
 
 /** Broadcast when the stored influence changes. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnInfluenceChanged, float, NewInfluence, float, Delta);
@@ -30,7 +30,7 @@ class GODGAME_API UGodGameWorldSubsystem : public UTickableWorldSubsystem
 protected:
 	// Weak set of faith components participating in world aggregation.
 	UPROPERTY(Transient)
-	TSet<TWeakObjectPtr<UFaithComponent>> FaithComponents;
+	TSet<TWeakObjectPtr<UCharacterFaithComponent>> FaithComponents;
 
 	// Unprocessed world time carried between coarse simulation steps.
 	UPROPERTY(Transient)
@@ -135,13 +135,13 @@ public:
 	 * Adds a valid faith component to population aggregation.
 	 * @param FaithComponent The component to register.
 	 */
-	void RegisterFaithComponent(UFaithComponent* FaithComponent);
+	void RegisterFaithComponent(UCharacterFaithComponent* FaithComponent);
 
 	/**
 	 * Removes a faith component from population aggregation.
 	 * @param FaithComponent The component to unregister.
 	 */
-	void UnregisterFaithComponent(UFaithComponent* FaithComponent);
+	void UnregisterFaithComponent(UCharacterFaithComponent* FaithComponent);
 
 	// UWorldSubsystem.
 	virtual bool ShouldCreateSubsystem(UObject* Outer) const override;

@@ -1,26 +1,30 @@
 // Copyright (c) 2026 Trent Polack. All Rights Reserved.
 // Licensed under the MIT License.
 
-#include "Interaction/GodGameMiracleComponent.h"
+#include "Gameplay/GodGameMiracleComponent.h"
 
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
 #include "DrawDebugHelpers.h"
+#include "GodGameNativeGameplayTags.h"
 
 #include "Data/GodGameMiracleDefinition.h"
-#include "Interaction/GodGameMiraclePreviewActor.h"
+#include "Gameplay/GodGameMiraclePreviewActor.h"
 #include "Simulation/GodGameWorldSubsystem.h"
 #include "Utilities/GodGameBlueprintLibrary.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(GodGameMiracleComponent)
 
 // Constants.
-const float UGodGameMiracleComponent::DefaultMiracleRadius = 100.0f;
-const float UGodGameMiracleComponent::DefaultMiracleHungerModifier = 0.25f;
-const float UGodGameMiracleComponent::DefaultMiracleSafetyModifier = 0.10f;
-const float UGodGameMiracleComponent::DefaultMiracleFaithModifier = 0.08f;
+const float UGodGameMiracleComponent::kMinimumMiracleRadius = 100.0f;
 
-const FColor UGodGameMiracleComponent::DefaultMiracleDebugDrawColor = FColor(60, 170, 255);
+const float UGodGameMiracleComponent::kDefaultMiracleHungerModifier = 0.1f;
+const float UGodGameMiracleComponent::kDefaultMiracleRestModifier = 0.1f;
+const float UGodGameMiracleComponent::kDefaultMiracleFearModifier = 0.05f;
+const float UGodGameMiracleComponent::kDefaultMiracleFaithModifier = 0.08f;
+const float UGodGameMiracleComponent::kDefaultMiracleSocializationModifier = 0.075f;
+
+const FColor UGodGameMiracleComponent::kDefaultMiracleDebugDrawColor = FColor(60, 170, 255);
 
 // Constructor.
 UGodGameMiracleComponent::UGodGameMiracleComponent()
@@ -165,13 +169,13 @@ FGodGameMiracleCastCheck UGodGameMiracleComponent::CanCastMiracle(UGodGameMiracl
 }
 
 // Attempts to spend influence and spawn a miracle effect at a cursor hit.
-bool UGodGameMiracleComponent::CastMiracleFromHit(UGodGameMiracleDefinition* Miracle, const FHitResult& Hit, AActor*& SpawnedActor, FGodGameMiracleCastCheck& OutResult)
+bool UGodGameMiracleComponent::CastMiracleFromHit(UGodGameMiracleDefinition* Miracle, const FHitResult& Hit, AActor*& SpawnedActor, FGodGameMiracleCastCheck& ResultOut)
 {
     UWorld* pWorld = GetWorld();
     
     SpawnedActor = nullptr;
-    OutResult = CanCastMiracle(Miracle, Hit);
-    if(!OutResult.bCanCast || !pWorld)
+    ResultOut = CanCastMiracle(Miracle, Hit);
+    if(!ResultOut.bCanCast || !pWorld)
     {
         return false;
     }
@@ -180,9 +184,9 @@ bool UGodGameMiracleComponent::CastMiracleFromHit(UGodGameMiracleDefinition* Mir
     UGodGameWorldSubsystem* Sim = pWorld->GetSubsystem<UGodGameWorldSubsystem>();
     if(!Sim || !Sim->TrySpendInfluence(Miracle->InfluenceCost))
     {
-        OutResult.bCanCast = false;
-        OutResult.FailureReason = EGodGameMiracleCastFailure::InsufficientInfluence;
-        OutResult.Message = NSLOCTEXT("GodGame", "SpendFailed", "Not enough influence.");
+        ResultOut.bCanCast = false;
+        ResultOut.FailureReason = EGodGameMiracleCastFailure::InsufficientInfluence;
+        ResultOut.Message = NSLOCTEXT("GodGame", "SpendFailed", "Not enough influence.");
         return false;
     }
 
@@ -205,19 +209,22 @@ bool UGodGameMiracleComponent::CastMiracleFromHit(UGodGameMiracleDefinition* Mir
 		if(!SpawnedActor)
 		{
 			Sim->AddInfluence(Miracle->InfluenceCost);
-			OutResult.bCanCast = false;
-			OutResult.FailureReason = EGodGameMiracleCastFailure::SpawnFailed;
-			OutResult.Message = NSLOCTEXT("GodGame", "SpawnFailed", "Miracle effect failed to spawn.");
+			ResultOut.bCanCast = false;
+			ResultOut.FailureReason = EGodGameMiracleCastFailure::SpawnFailed;
+			ResultOut.Message = NSLOCTEXT("GodGame", "SpawnFailed", "Miracle effect failed to spawn.");
 			return false;
 		}
     }
 
 	// Native prototype fallback: every miracle visibly pulses and improves nearby wellbeing/faith.
-	const float Radius = FMath::Max(DefaultMiracleRadius, Miracle->EffectRadius);
-	DrawDebugSphere(pWorld, Hit.ImpactPoint, Radius, 32, DefaultMiracleDebugDrawColor, false, 5.0f, 0, 5.0f);
-	UGodGameBlueprintLibrary::ModifyNeedInRadius(this, Hit.ImpactPoint, Radius, EVillagerNeed::Hunger, DefaultMiracleHungerModifier, FGameplayTagContainer());
-	UGodGameBlueprintLibrary::ModifyNeedInRadius(this, Hit.ImpactPoint, Radius, EVillagerNeed::Safety, DefaultMiracleSafetyModifier, FGameplayTagContainer());
-	UGodGameBlueprintLibrary::ModifyFaithInRadius(this, Hit.ImpactPoint, Radius, DefaultMiracleFaithModifier, FGameplayTagContainer());
+	const float Radius = FMath::Max(kMinimumMiracleRadius, Miracle->EffectRadius);
+
+    DrawDebugSphere(pWorld, Hit.ImpactPoint, Radius, 32, kDefaultMiracleDebugDrawColor, false, 5.0f, 0, 5.0f);
+	UGodGameBlueprintLibrary::ModifyNeedInRadius(this, Hit.ImpactPoint, Radius, TAG_GodGame_Need_Hunger, kDefaultMiracleHungerModifier, FGameplayTagContainer());
+	UGodGameBlueprintLibrary::ModifyNeedInRadius(this, Hit.ImpactPoint, Radius, TAG_GodGame_Need_Rest, kDefaultMiracleRestModifier, FGameplayTagContainer());
+	UGodGameBlueprintLibrary::ModifyNeedInRadius(this, Hit.ImpactPoint, Radius, TAG_GodGame_Need_Fear, kDefaultMiracleFearModifier, FGameplayTagContainer());
+	UGodGameBlueprintLibrary::ModifyNeedInRadius(this, Hit.ImpactPoint, Radius, TAG_GodGame_Need_Faith, kDefaultMiracleFaithModifier, FGameplayTagContainer());
+	UGodGameBlueprintLibrary::ModifyNeedInRadius(this, Hit.ImpactPoint, Radius, TAG_GodGame_Need_Socialization, kDefaultMiracleSocializationModifier, FGameplayTagContainer());
 
     // Set the last cast time for the miracle (to track cooldown).
     MiracleLastCastTimeMap.Add(Miracle, pWorld->GetTimeSeconds());

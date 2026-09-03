@@ -16,6 +16,20 @@
 class AGodGameMiraclePreviewActor;
 class UTexture2D;
 
+// Determines what kind of cursor hit a miracle considers valid.
+UENUM(BlueprintType)
+enum class EMiracleTargetingMode : uint8
+{
+	// Accepts any blocking surface hit.
+	Ground			UMETA(DisplayName="Ground/Surface"),
+
+	// Requires the hit to resolve to an actor.
+	Actor			UMETA(DisplayName="Actor"),
+
+	// Accepts either a blocking surface or an actor.
+	GroundOrActor	UMETA(DisplayName="Ground/Surface or Actor")
+};
+
 // Content-facing miracle definition. Make one Primary Data Asset per miracle, then point it at Blueprint actor classes for the actual presentation/effect implementation.
 UCLASS(BlueprintType, ClassGroup=(GodGame), Category = "Miracle")
 class GODGAME_API UGodGameMiracleDefinition : public UPrimaryDataAsset

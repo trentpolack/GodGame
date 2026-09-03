@@ -11,7 +11,7 @@
 #include "Systems/Traits/ISystemicTraitProvider.h"
 
 #include "Data/GodGameMiracleDefinition.h"
-#include "Interaction/GodGameMiracleComponent.h"
+#include "Gameplay/GodGameMiracleComponent.h"
 #include "Simulation/GodGameWorldSubsystem.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(GodGamePlayerController)

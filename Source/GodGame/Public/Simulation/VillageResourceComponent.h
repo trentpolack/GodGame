@@ -11,30 +11,52 @@
 
 #include "VillageResourceComponent.generated.h"
 
+// Coarse village resource state whose tag allows content-only resource types.
+USTRUCT(BlueprintType)
+struct GODGAME_API FGodGameResourceState
+{
+	GENERATED_BODY()
+
+	// Gameplay tag that uniquely identifies the resource type. 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Resource", meta = (GameplayTagFilter="GodGame.Resource"))
+	FGameplayTag ResourceTag;
+
+	// Current stored amount, clamped between zero and Capacity by component operations. 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Resource", meta = (ClampMin="0.0", UIMin="0.0"))
+	float Amount = 0.0f;
+
+	// Maximum amount that can be stored. 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Resource", meta = (ClampMin="0.0", UIMin="0.0"))
+	float Capacity = 100.0f;
+
+	// Positive values produce resource over time; negative values consume it. 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Resource")
+	float PassiveDeltaPerSecond = 0.0f;
+};
+
 /** Broadcast when a village resource amount changes. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnVillageResourceChanged, FGameplayTag, ResourceTag, float, NewAmount, float, Delta);
 
-// Rough settlement inventory. Put one on a BP_Village rather than simulating individual villager inventories.
+// Rough settlement inventory.
 UCLASS(ClassGroup = (GodGame), meta = (BlueprintSpawnableComponent))
 class GODGAME_API UVillageResourceComponent : public UActorComponent
 {
 	GENERATED_BODY()
 	
 protected:
-	// TODO (trent, 8/24/26): Rework these accessors.
 	/**
 	 * Finds a mutable resource state by exact tag.
 	 * @param ResourceTag The exact gameplay tag to locate.
 	 * @return The matching state, or null when no resource matches.
 	 */
-	FGodGameResourceState* FindResource(FGameplayTag ResourceTag);
+	FGodGameResourceState* FindResource(const FGameplayTag& ResourceTag);
 
 	/**
 	 * Finds a read-only resource state by exact tag.
 	 * @param ResourceTag The exact gameplay tag to locate.
 	 * @return The matching state, or null when no resource matches.
 	 */
-	const FGodGameResourceState* FindResource(FGameplayTag ResourceTag) const;
+	const FGodGameResourceState* FindResource(const FGameplayTag& ResourceTag) const;
 
 public:
 	/**
@@ -65,7 +87,7 @@ public:
 	 * @return The resulting amount stored for the resource.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "GodGame|Resources", meta = (GameplayTagFilter="GodGame.Resource"))
-	float AddResource(FGameplayTag ResourceTag, float Amount);
+	float AddResource(const FGameplayTag& ResourceTag, float Amount);
 
 	/**
 	 * Attempts to consume a nonnegative resource amount atomically.
@@ -74,7 +96,7 @@ public:
 	 * @return True when the resource existed and held at least the requested amount.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "GodGame|Resources", meta = (GameplayTagFilter="GodGame.Resource"))
-	bool TryConsumeResource(FGameplayTag ResourceTag, float Amount);
+	bool TryConsumeResource(const FGameplayTag& ResourceTag, float Amount);
 
 	/**
 	 * Replaces a resource amount, creating its state when absent and clamping to capacity.
@@ -83,7 +105,7 @@ public:
 	 * @return The resulting clamped resource amount.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "GodGame|Resources", meta = (GameplayTagFilter="GodGame.Resource"))
-	float SetResourceAmount(FGameplayTag ResourceTag, float AmountNew);
+	float SetResourceAmount(const FGameplayTag& ResourceTag, float AmountNew);
 
 	/**
 	 * Retrieves the current amount of a resource.
@@ -91,7 +113,7 @@ public:
 	 * @return The stored amount, or zero when the resource is absent.
 	 */
 	UFUNCTION(BlueprintPure, Category = "GodGame|Resources", meta = (GameplayTagFilter="GodGame.Resource"))
-	float GetResourceAmount(FGameplayTag ResourceTag) const;
+	float GetResourceAmount(const FGameplayTag& ResourceTag) const;
 
 	/**
 	 * Retrieves resource storage as a fraction of capacity.
@@ -99,7 +121,7 @@ public:
 	 * @return Amount divided by capacity, or zero when the resource is absent or has no capacity.
 	 */
 	UFUNCTION(BlueprintPure, Category = "GodGame|Resources", meta = (GameplayTagFilter="GodGame.Resource"))
-	float GetResourceNormalized(FGameplayTag ResourceTag) const;
+	float GetResourceNormalized(const FGameplayTag& ResourceTag) const;
 
 	/**
 	 * Replaces Resources with Food and Wood entries.

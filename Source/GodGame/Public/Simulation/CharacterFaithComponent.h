@@ -7,14 +7,17 @@
 
 #include "Components/ActorComponent.h"
 
-#include "FaithComponent.generated.h"
+#include "GodGameNativeGameplayTags.h"
+
+#include "CharacterFaithComponent.generated.h"
 
 /** Broadcast when faith changes, including the applied delta and resulting believer state. */
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnFaithChanged, float, NewFaith, float, Delta, bool, bIsBeliever);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnFaithChanged, float, FaithNew, float, Delta, bool, bBeliever);
 
-/** Individual belief state. Components auto-register with the world subsystem during play. */
+// Additional logic for the Faith "Need" value provided by `CharacterNeedsComponent` (a requirement) as it's somewhat more complex.
+//	NOTE: This component auto-registers with the world subsystem during play.
 UCLASS(ClassGroup = (GodGame), meta = (BlueprintSpawnableComponent))
-class GODGAME_API UFaithComponent : public UActorComponent
+class GODGAME_API UCharacterFaithComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
@@ -22,11 +25,11 @@ public:
 	/**
 	 * Constructor.
 	 */
-	UFaithComponent();
+	UCharacterFaithComponent();
 	
 	// Current belief strength in the inclusive range [0.0, 1.0].
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "GodGame|Faith", meta = (ClampMin="0.0", ClampMax="1.0", UIMin="0.0", UIMax="1.0"))
-	float Faith = 0.25f;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "GodGame|Faith")
+	FGameplayTag FaithTag = TAG_GodGame_Need_Faith;
 
 	// Minimum faith at which the owner is considered a believer ([0.0, 1.0]).
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "GodGame|Faith", meta = (ClampMin="0.0", ClampMax="1.0", UIMin="0.0", UIMax="1.0"))
@@ -45,12 +48,11 @@ public:
 	FOnFaithChanged OnFaithChanged;
 
 	/**
-	 * Adds a signed delta to Faith and clamps the result to [0.0, 1.0].
-	 * @param Delta The amount to add; positive values strengthen faith and negative values weaken it.
-	 * @return The resulting clamped faith value.
+	 * Get the current Faith amount from the owning character.
+	 * @return The Faith Need value in the range [0.0, 1.0].
 	 */
 	UFUNCTION(BlueprintCallable, Category = "GodGame|Faith")
-	float ModifyFaith(float Delta);
+	float GetFaith() const;
 
 	/**
 	 * Replaces Faith with a clamped value and broadcasts changes.
@@ -61,11 +63,19 @@ public:
 	float SetFaith(float FaithNew);
 
 	/**
-	 * Tests the current faith against BelieverThreshold.
-	 * @return True when Faith is greater than or equal to the believer threshold.
+	 * Adds a signed delta to Faith and clamps the result to [0.0, 1.0].
+	 * @param Delta The amount to add; positive values strengthen faith and negative values weaken it.
+	 * @return The resulting clamped faith value.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "GodGame|Faith")
+	float ModifyFaith(float Delta);
+	
+	/**
+	 * Whether this component's owner is a believer.
+	 * @return True when Faith is greater than or equal to `BelieverThreshold`.
 	 */
 	UFUNCTION(BlueprintPure, Category = "GodGame|Faith")
-	bool IsBeliever() const { return Faith >= BelieverThreshold; }
+	virtual bool IsBeliever() const;
 
 	/**
 	 * Calculates this component's current faith-based influence contribution.

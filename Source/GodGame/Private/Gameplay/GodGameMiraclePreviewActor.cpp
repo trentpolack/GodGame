@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Trent Polack. All Rights Reserved.
 // Licensed under the MIT License.
 
-#include "Interaction/GodGameMiraclePreviewActor.h"
+#include "Gameplay/GodGameMiraclePreviewActor.h"
 
 #include "Components/SceneComponent.h"
 

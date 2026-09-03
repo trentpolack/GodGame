@@ -45,25 +45,15 @@ public:
 	 * @param WorldContextObject The context object used to determine the relevant world.
 	 * @param Origin The center location of the search radius.
 	 * @param Radius The radius within which to search for actors.
-	 * @param Need The need to be modified (e.g., Hunger, Rest, Safety, Faith).
+	 * @param NeedTag The need to be modified (e.g., Hunger, Rest, Safety, Faith).
 	 * @param Delta The amount by which to modify the need. Positive values increase satisfaction, negative values decrease it.
 	 * @param RequiredTraits The gameplay tag container specifying traits that actors must possess to be considered.
 	 * @return The number of actors affected by the modification.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "GodGame|Gameplay", meta = (WorldContext="WorldContextObject", GameplayTagFilter="System.Trait", AutoCreateRefTerm="RequiredTraits"))
-	static int32 ModifyNeedInRadius(const UObject* WorldContextObject, FVector Origin, float Radius, EVillagerNeed Need, float Delta, const FGameplayTagContainer& RequiredTraits);
-
-	/**
-	 * Applies a faith delta to matching actors with FaithComponent. Returns affected actor count. TODO (trent, 8/24/26): Should be able to handle this through JoyCore.
-	 * @param WorldContextObject The context object used to determine the relevant world.
-	 * @param Origin The center location of the search radius.
-	 * @param Radius The radius within which to search for actors.
-	 * @param Delta The amount by which to modify the faith. Positive values increase faith, negative values decrease it.
-	 * @param RequiredTraits The gameplay tag container specifying traits that actors must possess to be considered.
-	 * @return The number of actors affected by the faith modification.
-	 */
-	UFUNCTION(BlueprintCallable, Category = "GodGame|Effects", meta = (WorldContext="WorldContextObject", GameplayTagFilter="System.Trait", AutoCreateRefTerm="RequiredTraits"))
-	static int32 ModifyFaithInRadius(const UObject* WorldContextObject, FVector Origin, float Radius, float Delta, const FGameplayTagContainer& RequiredTraits);
+	UFUNCTION(BlueprintCallable, Category = "GodGame|Gameplay", meta = (WorldContext="WorldContextObject", AutoCreateRefTerm="RequiredTraits"))
+	static int32 ModifyNeedInRadius(const UObject* WorldContextObject, FVector Origin, float Radius,
+									UPARAM(meta = (GameplayTagFilter="GodGame.Need")) const FGameplayTag& NeedTag, float Delta,
+									UPARAM(meta = (GameplayTagFilter="System.Trait")) const FGameplayTagContainer& RequiredTraits);
 
 	/**
 	 * Adds/consumes a tagged village resource on matching actors with VillageResourceComponent.
@@ -77,7 +67,7 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "GodGame|Gameplay", meta = (WorldContext="WorldContextObject", AutoCreateRefTerm="RequiredTraits"))
 	static int32 ModifyResourceInRadius(const UObject* WorldContextObject, FVector Origin, float Radius,
-	                                    UPARAM(meta = (GameplayTagFilter="GodGame.Resource")) FGameplayTag ResourceTag, float Delta,
+	                                    UPARAM(meta = (GameplayTagFilter="GodGame.Resource")) const FGameplayTag& ResourceTag, float Delta,
 	                                    UPARAM(meta = (GameplayTagFilter="System.Trait")) const FGameplayTagContainer& RequiredTraits);
 
 	/**
@@ -93,6 +83,6 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "GodGame|Gameplay", meta = (WorldContext="WorldContextObject", AutoCreateRefTerm="RequiredTraits", DefaultToSelf="SourceActor"))
 	static int32 SendReactionInRadius(const UObject* WorldContextObject, FVector Origin, float Radius,
-	                                  UPARAM(meta = (GameplayTagFilter="System.Event.GodGame.Reaction")) FGameplayTag ReactionTag, float Strength, AActor* SourceActor,
+	                                  UPARAM(meta = (GameplayTagFilter="System.Event.GodGame.Reaction")) const FGameplayTag& ReactionTag, float Strength, AActor* SourceActor,
 	                                  UPARAM(meta = (GameplayTagFilter="System.Trait")) const FGameplayTagContainer& RequiredTraits);
 };

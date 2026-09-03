@@ -8,6 +8,9 @@
 #include "Misc/Paths.h"
 #include "Modules/ModuleManager.h"
 
+// General-purpose log category for the God Game plugin.
+DEFINE_LOG_CATEGORY(LogGodGame);
+
 IMPLEMENT_MODULE(FGodGameModule, GodGame)
 
 void FGodGameModule::StartupModule()

@@ -4,7 +4,7 @@
 #include "Simulation/GodGameWorldSubsystem.h"
 
 #include "Core/GodGameSettings.h"
-#include "Simulation/FaithComponent.h"
+#include "Simulation/CharacterFaithComponent.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(GodGameWorldSubsystem)
 
@@ -35,7 +35,7 @@ void UGodGameWorldSubsystem::RefreshFaithMetrics()
 
     for(auto It = FaithComponents.CreateIterator(); It; ++It)
     {
-        UFaithComponent* pFaithComponent = It->Get();
+        UCharacterFaithComponent* pFaithComponent = It->Get();
         if (!IsValid(pFaithComponent))
         {
             It.RemoveCurrent();
@@ -43,7 +43,7 @@ void UGodGameWorldSubsystem::RefreshFaithMetrics()
         }
 
         ++ValidCount;
-        FaithSum+= pFaithComponent->Faith;
+        FaithSum+= pFaithComponent->GetFaith();
         InfluenceRateNew+= pFaithComponent->GetInfluenceGenerationRate();
 
         if(pFaithComponent->IsBeliever())
@@ -111,7 +111,7 @@ float UGodGameWorldSubsystem::GetInfluenceNormalized() const
 }
 
 // Adds a valid faith component to population aggregation.
-void UGodGameWorldSubsystem::RegisterFaithComponent(UFaithComponent* FaithComponent)
+void UGodGameWorldSubsystem::RegisterFaithComponent(UCharacterFaithComponent* FaithComponent)
 {
     if(IsValid(FaithComponent))
     {
@@ -120,9 +120,9 @@ void UGodGameWorldSubsystem::RegisterFaithComponent(UFaithComponent* FaithCompon
 }
 
 // Removes a faith component from population aggregation.
-void UGodGameWorldSubsystem::UnregisterFaithComponent(UFaithComponent* FaithComponent)
+void UGodGameWorldSubsystem::UnregisterFaithComponent(UCharacterFaithComponent* FaithComponent)
 {
-    FaithComponents.Remove(TWeakObjectPtr<UFaithComponent>(FaithComponent));
+    FaithComponents.Remove(TWeakObjectPtr<UCharacterFaithComponent>(FaithComponent));
 }
 
 // Determines whether the subsystem should be created.

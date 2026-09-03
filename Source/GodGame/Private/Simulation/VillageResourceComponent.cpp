@@ -17,7 +17,7 @@ UVillageResourceComponent::UVillageResourceComponent()
 }
 
 // Finds a mutable resource state by exact tag.
-FGodGameResourceState* UVillageResourceComponent::FindResource(FGameplayTag ResourceTag)
+FGodGameResourceState* UVillageResourceComponent::FindResource(const FGameplayTag& ResourceTag)
 {
     return(Resources.FindByPredicate([ResourceTag](const FGodGameResourceState& State)
     {
@@ -26,7 +26,7 @@ FGodGameResourceState* UVillageResourceComponent::FindResource(FGameplayTag Reso
 }
 
 // Finds a read-only resource state by exact tag.
-const FGodGameResourceState* UVillageResourceComponent::FindResource(FGameplayTag ResourceTag) const
+const FGodGameResourceState* UVillageResourceComponent::FindResource(const FGameplayTag& ResourceTag) const
 {
     return(Resources.FindByPredicate([ResourceTag](const FGodGameResourceState& State)
     {
@@ -35,7 +35,7 @@ const FGodGameResourceState* UVillageResourceComponent::FindResource(FGameplayTa
 }
 
 // Adds a signed amount to a resource, creating its state when absent and clamping to capacity.
-float UVillageResourceComponent::AddResource(FGameplayTag ResourceTag, float Amount)
+float UVillageResourceComponent::AddResource(const FGameplayTag& ResourceTag, float Amount)
 {
     FGodGameResourceState* Resource = FindResource(ResourceTag);
     if (!Resource)
@@ -58,7 +58,7 @@ float UVillageResourceComponent::AddResource(FGameplayTag ResourceTag, float Amo
 }
 
 // Attempts to consume a nonnegative resource amount atomically.
-bool UVillageResourceComponent::TryConsumeResource(FGameplayTag ResourceTag, float Amount)
+bool UVillageResourceComponent::TryConsumeResource(const FGameplayTag& ResourceTag, float Amount)
 {
     if (Amount <= 0.0f)
     {
@@ -76,7 +76,7 @@ bool UVillageResourceComponent::TryConsumeResource(FGameplayTag ResourceTag, flo
 }
 
 // Replaces a resource amount, creating its state when absent and clamping to capacity
-float UVillageResourceComponent::SetResourceAmount(FGameplayTag ResourceTag, float AmountNew)
+float UVillageResourceComponent::SetResourceAmount(const FGameplayTag& ResourceTag, float AmountNew)
 {
     FGodGameResourceState* pResource = FindResource(ResourceTag);
     if (!pResource)
@@ -101,14 +101,14 @@ float UVillageResourceComponent::SetResourceAmount(FGameplayTag ResourceTag, flo
 }
 
 // Retrieves the current amount of a resource.
-float UVillageResourceComponent::GetResourceAmount(FGameplayTag ResourceTag) const
+float UVillageResourceComponent::GetResourceAmount(const FGameplayTag& ResourceTag) const
 {
     const FGodGameResourceState* Resource = FindResource(ResourceTag);
     return Resource ? Resource->Amount : 0.0f;
 }
 
 // Retrieves resource storage as a fraction of capacity
-float UVillageResourceComponent::GetResourceNormalized(FGameplayTag ResourceTag) const
+float UVillageResourceComponent::GetResourceNormalized(const FGameplayTag& ResourceTag) const
 {
     const FGodGameResourceState* Resource = FindResource(ResourceTag);
     return Resource && Resource->Capacity > 0.0f ? Resource->Amount / Resource->Capacity : 0.0f;
