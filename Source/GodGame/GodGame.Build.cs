@@ -7,19 +7,6 @@ public class GodGame : ModuleRules
     public GodGame(ReadOnlyTargetRules Target) : base(Target)
     {
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-
-        PublicDependencyModuleNames.AddRange(new string[]
-        {
-            
-        });
-        
-        PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
-		
-        // Public include path list.
-        PublicIncludePaths.AddRange(
-	        new string[]
-	        {
-	        });
 		
         // Private include path list.
         PrivateIncludePaths.AddRange(

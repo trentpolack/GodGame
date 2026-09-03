@@ -1,15 +1,17 @@
 // Copyright (c) 2026 Trent Polack. All Rights Reserved.
 // Licensed under the MIT License.
 
-#include "Interaction/GodGamePlayerController.h"
+#include "GameFramework/GodGamePlayerController.h"
 
-#include "GameFramework/Pawn.h"
 #include "Engine/Engine.h"
+#include "GameFramework/Pawn.h"
 #include "InputCoreTypes.h"
+
+#include "JoyCoreNativeGameplayTags.h"
+#include "Systems/Traits/ISystemicTraitProvider.h"
 
 #include "Data/GodGameMiracleDefinition.h"
 #include "Interaction/GodGameMiracleComponent.h"
-#include "Interaction/GodGameTagComponent.h"
 #include "Simulation/GodGameWorldSubsystem.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(GodGamePlayerController)
@@ -22,7 +24,11 @@ AGodGamePlayerController::AGodGamePlayerController()
     bEnableClickEvents = true;
     bEnableMouseOverEvents = true;
     DefaultMouseCursor = EMouseCursor::Default;
+
+	// Create the miracle component.
 	MiracleComponent = CreateDefaultSubobject<UGodGameMiracleComponent>(TEXT("MiracleComponent"));
+	
+	// Prototype native fallback.
 	RainMiracleClass = TSoftClassPtr<UGodGameMiracleDefinition>(FSoftObjectPath(TEXT("/GodGame/Data/Miracles/Rain_Miracle.Rain_Miracle_C")));
 }
 
@@ -74,18 +80,22 @@ void AGodGamePlayerController::PlayerTick(float DeltaTime)
 void AGodGamePlayerController::HandlePrimaryAction()
 {
 	FHitResult Hit;
-	if(!TraceGodCursor(Hit))
+	if(!GEngine || !TraceGodCursor(Hit))
 	{
 		return;
 	}
+
+	// Cast the currently selected miracle.
 	AActor* SpawnedActor = nullptr;
 	FGodGameMiracleCastCheck Result;
-	if(!MiracleComponent->CastSelectedMiracleFromHit(Hit, SpawnedActor, Result) && GEngine && !Result.Message.IsEmpty())
+	if(!MiracleComponent->CastSelectedMiracleFromHit(Hit, SpawnedActor, Result))
 	{
-		GEngine->AddOnScreenDebugMessage(7002, 2.0f, FColor::Red, Result.Message.ToString());
+		// Print debug message.
+		GEngine->AddOnScreenDebugMessage(7002, 5.0f, FColor::Red, Result.Message.ToString());
 	}
 }
 
+// Secondary action; Select actor under cursor.
 void AGodGamePlayerController::HandleSecondaryAction()
 {
 	SelectActorUnderCursor();
@@ -93,9 +103,9 @@ void AGodGamePlayerController::HandleSecondaryAction()
 
 void AGodGamePlayerController::SelectRainMiracle()
 {
-	if(UClass* MiracleClass = RainMiracleClass.LoadSynchronous())
+	if(UClass* pMiracleClass = RainMiracleClass.LoadSynchronous())
 	{
-		MiracleComponent->SelectMiracle(MiracleClass->GetDefaultObject<UGodGameMiracleDefinition>());
+		MiracleComponent->SelectMiracle(pMiracleClass->GetDefaultObject<UGodGameMiracleDefinition>());
 	}
 }
 
@@ -105,15 +115,17 @@ void AGodGamePlayerController::RefreshPrototypeHUD() const
 	{
 		return;
 	}
-	const UGodGameWorldSubsystem* Simulation = GetWorld() ? GetWorld()->GetSubsystem<UGodGameWorldSubsystem>() : nullptr;
-	const float Influence = Simulation ? Simulation->GetInfluence() : 0.0f;
-	const int32 Believers = Simulation ? Simulation->BelieverCount : 0;
-	FString MiracleName = MiracleComponent && MiracleComponent->SelectedMiracle
-		? MiracleComponent->SelectedMiracle->DisplayName.ToString() : TEXT("None");
+
+	const UGodGameWorldSubsystem* pSimulation = GetWorld() ? GetWorld()->GetSubsystem<UGodGameWorldSubsystem>() : nullptr;
+	const float Influence = pSimulation ? pSimulation->GetInfluence() : 0.0f;
+	const int32 Believers = pSimulation ? pSimulation->BelieverCount : 0;
+	FString MiracleName = MiracleComponent && MiracleComponent->SelectedMiracle ? (MiracleComponent->SelectedMiracle->DisplayName.ToString()) : TEXT("None");
 	if(MiracleName.IsEmpty() && MiracleComponent && MiracleComponent->SelectedMiracle)
 	{
 		MiracleName = MiracleComponent->SelectedMiracle->GetName();
 	}
+
+	// Debug HUD.
 	const FString Status = FString::Printf(TEXT("GOD GAME  |  Influence %.0f  |  Believers %d  |  Miracle: %s\nLMB cast  |  RMB select  |  1 rain  |  Esc clear"), Influence, Believers, *MiracleName);
 	GEngine->AddOnScreenDebugMessage(7001, 0.05f, FColor(120, 220, 255), Status);
 }
@@ -136,7 +148,7 @@ bool AGodGamePlayerController::TraceGodCursor(FHitResult& HitOut, float TraceDis
     }
 
     const float Distance = (TraceDistance > 0.0f) ? TraceDistance : DefaultTraceDistance;
-    const FVector End = WorldOrigin + WorldDirection * Distance;
+    const FVector EndPoint = WorldDirection*Distance + WorldOrigin;
 
     FCollisionQueryParams Params(SCENE_QUERY_STAT(GodCursorTrace), true);
     if(const APawn* pPawn = GetPawn())
@@ -144,7 +156,7 @@ bool AGodGamePlayerController::TraceGodCursor(FHitResult& HitOut, float TraceDis
         Params.AddIgnoredActor(pPawn);
     }
 
-    return(pWorld->LineTraceSingleByChannel(HitOut, WorldOrigin, End, CursorTraceChannel, Params));
+    return(pWorld->LineTraceSingleByChannel(HitOut, WorldOrigin, EndPoint, CursorTraceChannel, Params));
 }
 
 // Selects the actor under the cursor unless its God Game tag component opts out of selection.
@@ -156,9 +168,9 @@ AActor* AGodGamePlayerController::SelectActorUnderCursor()
     // A tag component is optional, but if present it can explicitly opt an actor out of god selection.
     if(IsValid(pCandidate))
     {
-        if(const UGodGameTagComponent* pTagComponent = pCandidate->FindComponentByClass<UGodGameTagComponent>())
+        if(const ISystemicTraitProvider* pTraitProvider = Cast<ISystemicTraitProvider>(pCandidate->FindComponentByInterface(USystemicTraitProvider::StaticClass())))
         {
-            if(!pTagComponent->bSelectable)
+            if(!pTraitProvider->HasTrait(TAG_System_Trait_Selectable))
             {
                 // Invalid selection candidate.
                 pCandidate = nullptr;

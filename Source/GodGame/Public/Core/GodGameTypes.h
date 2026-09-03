@@ -11,6 +11,9 @@
 
 //	TODO (trent, 8/24/26): Most of these should be able to be converted to gameplay tags eventually.
 
+// Declarations.
+class UGodGameMiracleDefinition;
+
 // Small, intentionally fixed need set used by the prototype villager simulation.
 UENUM(BlueprintType)
 enum class EVillagerNeed : uint8
@@ -39,7 +42,7 @@ enum class EMiracleTargetingMode : uint8
 	Actor			UMETA(DisplayName="Actor"),
 
 	// Accepts either a blocking surface or an actor.
-	GroundOrActor	UMETA(DisplayName="Ground or Actor")
+	GroundOrActor	UMETA(DisplayName="Ground/Surface or Actor")
 };
 
 // Useful for UI, preview tinting, and quick Blueprint debugging.
@@ -49,8 +52,8 @@ enum class EGodGameMiracleCastFailure : uint8
 	// The cast is valid and has no failure.
 	None,
 
-	// No miracle definition was supplied or selected.
-	NoMiracleSelected,
+	// No miracle definition was supplied or selected, or the miracle is on cooldown.
+	NoMiracleSelectedOrOnCooldown,
 
 	// The cursor hit does not satisfy the miracle's targeting mode.
 	InvalidTarget,
@@ -60,9 +63,6 @@ enum class EGodGameMiracleCastFailure : uint8
 
 	// The world does not contain enough influence to pay the casting cost.
 	InsufficientInfluence,
-
-	// The miracle has not completed its cooldown.
-	OnCooldown,
 
 	// The miracle has no effect class or its effect actor could not be spawned.
 	SpawnFailed
@@ -135,11 +135,11 @@ struct GODGAME_API FGodGameMiracleCastCheck
 	UPROPERTY(BlueprintReadOnly, Category = "Miracle")
 	uint8 bCanCast : 1 = false;
 
-	// Machine-readable reason the cast failed, or None when casting is allowed.
+	// Reason the cast failed or None if it succeeded.
 	UPROPERTY(BlueprintReadOnly, Category = "Miracle")
 	EGodGameMiracleCastFailure FailureReason = EGodGameMiracleCastFailure::None;
 
-	// Localized user-facing explanation of the failure. Empty when casting is allowed.
+	// Localized user-facing explanation of the failure.
 	UPROPERTY(BlueprintReadOnly, Category = "Miracle")
 	FText Message = FText();
 };

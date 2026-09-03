@@ -9,8 +9,6 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(GodGameMiraclePreviewActor)
 
-// TODO (trent, 8/24/26): This should probably be in an editor module.
-
 // Constructor.
 AGodGameMiraclePreviewActor::AGodGameMiraclePreviewActor()
 {
@@ -24,7 +22,7 @@ AGodGameMiraclePreviewActor::AGodGameMiraclePreviewActor()
 // Places and displays the preview for a prospective cast.
 void AGodGameMiraclePreviewActor::UpdatePreview(UGodGameMiracleDefinition* Miracle, const FHitResult& Hit, const FGodGameMiracleCastCheck& CastCheck)
 {
-    if (!Miracle)
+    if(!Miracle)
     {
         SetActorHiddenInGame(true);
         return;
@@ -32,7 +30,7 @@ void AGodGameMiraclePreviewActor::UpdatePreview(UGodGameMiracleDefinition* Mirac
 
     // Update visibility.
     SetActorHiddenInGame(!Hit.bBlockingHit);
-    if (!Hit.bBlockingHit)
+    if(!Hit.bBlockingHit)
     {
         return;
     }

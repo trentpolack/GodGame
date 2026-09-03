@@ -22,18 +22,18 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnFaithMetricsChanged, int32, Be
  * Coarse global simulation state. It owns influence and aggregates registered FaithComponents,
  * while agent behavior/resources remain local to actors/components.
  */
-UCLASS()
+UCLASS(ClassGroup=(GodGame))
 class GODGAME_API UGodGameWorldSubsystem : public UTickableWorldSubsystem
 {
 	GENERATED_BODY()
 
 protected:
 	// Weak set of faith components participating in world aggregation.
-	UPROPERTY()
+	UPROPERTY(Transient)
 	TSet<TWeakObjectPtr<UFaithComponent>> FaithComponents;
 
 	// Unprocessed world time carried between coarse simulation steps.
-	UPROPERTY()
+	UPROPERTY(Transient)
 	float SimulationAccumulator = 0.0f;
 
 	// Duration of each coarse simulation step in seconds.
@@ -61,31 +61,31 @@ protected:
 
 public:
 	// Current spendable influence, clamped to [0, MaxInfluence].
-	UPROPERTY(BlueprintReadOnly, Transient, AdvancedDisplay, Category = "GodGame|Gameplay")
+	UPROPERTY(BlueprintReadOnly, Transient, AdvancedDisplay, Category = "GodGame|Transient|Gameplay")
 	float Influence = 0.0f;
 
 	// Maximum influence the subsystem can store.
-	UPROPERTY(BlueprintReadOnly, Transient, AdvancedDisplay, Category = "GodGame|Gameplay")
+	UPROPERTY(BlueprintReadOnly, Transient, AdvancedDisplay, Category = "GodGame|Transient|Gameplay")
 	float MaxInfluence = 100.0f;
 
 	// Number of registered faith components currently meeting their believer thresholds.
-	UPROPERTY(BlueprintReadOnly, Transient, AdvancedDisplay, Category = "GodGame|Gameplay")
+	UPROPERTY(BlueprintReadOnly, Transient, AdvancedDisplay, Category = "GodGame|Transient|Gameplay")
 	int32 BelieverCount = 0;
 
 	// Mean faith value across all valid registered faith components.
-	UPROPERTY(BlueprintReadOnly, Transient, AdvancedDisplay, Category = "GodGame|Gameplay")
+	UPROPERTY(BlueprintReadOnly, Transient, AdvancedDisplay, Category = "GodGame|Transient|Gameplay")
 	float AverageFaith = 0.0f;
 
 	// Total influence generated per second by registered faith components.
-	UPROPERTY(BlueprintReadOnly, Transient, AdvancedDisplay, Category = "GodGame|Gameplay")
+	UPROPERTY(BlueprintReadOnly, Transient, AdvancedDisplay, Category = "GodGame|Transient|Gameplay")
 	float FaithInfluencePerSecond = 0.0f;
 
 	// Event raised whenever stored influence changes.
-	UPROPERTY(BlueprintAssignable, Category = "GodGame|Gameplay|Events")
+	UPROPERTY(BlueprintAssignable, Category = "GodGame|Events|Gameplay")
 	FOnInfluenceChanged OnInfluenceChanged;
 
 	// Event raised after the subsystem refreshes aggregate faith metrics.
-	UPROPERTY(BlueprintAssignable, Category = "GodGame|Gameplay|Events")
+	UPROPERTY(BlueprintAssignable, Category = "GodGame|Events|Gameplay")
 	FOnFaithMetricsChanged OnFaithMetricsChanged;
 
 	/**
@@ -93,7 +93,7 @@ public:
 	 * @return The current spendable influence.
 	 */
 	UFUNCTION(BlueprintPure, Category = "GodGame|Influence")
-	float GetInfluence() const { return Influence; }
+	float GetInfluence() const;
 
 	/**
 	 * Attempts to deduct influence without allowing a negative balance.

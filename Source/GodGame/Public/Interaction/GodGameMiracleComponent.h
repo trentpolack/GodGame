@@ -30,7 +30,16 @@ class GODGAME_API UGodGameMiracleComponent : public UActorComponent
 protected:
 	// World time of the latest successful cast for each miracle definition.
 	//	NOTE (trent, 8/24/26): Fix this so it can be a property.
-	TMap<const UGodGameMiracleDefinition*, double> LastCastTimes;
+	UPROPERTY(BlueprintReadOnly, Transient, AdvancedDisplay, Category = "Transient|Miracle")
+	TMap<const UGodGameMiracleDefinition*, double> MiracleLastCastTimeMap;
+
+	// Sane defaults for a native fallback Miracle.
+	static const float DefaultMiracleRadius;
+	static const float DefaultMiracleHungerModifier;
+	static const float DefaultMiracleSafetyModifier;
+	static const float DefaultMiracleFaithModifier;
+
+	static const FColor DefaultMiracleDebugDrawColor;
 	
 	/**
 	 * Resolves the location used for range checks.

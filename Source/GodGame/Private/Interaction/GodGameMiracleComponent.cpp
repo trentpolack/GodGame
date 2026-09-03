@@ -5,14 +5,22 @@
 
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
+#include "DrawDebugHelpers.h"
 
 #include "Data/GodGameMiracleDefinition.h"
 #include "Interaction/GodGameMiraclePreviewActor.h"
 #include "Simulation/GodGameWorldSubsystem.h"
 #include "Utilities/GodGameBlueprintLibrary.h"
-#include "DrawDebugHelpers.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(GodGameMiracleComponent)
+
+// Constants.
+const float UGodGameMiracleComponent::DefaultMiracleRadius = 100.0f;
+const float UGodGameMiracleComponent::DefaultMiracleHungerModifier = 0.25f;
+const float UGodGameMiracleComponent::DefaultMiracleSafetyModifier = 0.10f;
+const float UGodGameMiracleComponent::DefaultMiracleFaithModifier = 0.08f;
+
+const FColor UGodGameMiracleComponent::DefaultMiracleDebugDrawColor = FColor(60, 170, 255);
 
 // Constructor.
 UGodGameMiracleComponent::UGodGameMiracleComponent()
@@ -38,6 +46,7 @@ FVector UGodGameMiracleComponent::GetCastOrigin() const
 // Destroys the current preview and creates the preview class configured by SelectedMiracle, if any.
 void UGodGameMiracleComponent::RecreatePreview()
 {
+    // If there's an existing preview, destroy it.
     if(IsValid(PreviewActor))
     {
         PreviewActor->Destroy();
@@ -88,19 +97,21 @@ void UGodGameMiracleComponent::ClearSelectedMiracle()
 float UGodGameMiracleComponent::GetCooldownRemaining(const UGodGameMiracleDefinition* Miracle) const
 {
     const UWorld* pWorld = GetWorld();
-    if(!Miracle || (Miracle->CooldownSeconds <= 0.0f) || !pWorld)
+    if(!pWorld || !Miracle || (Miracle->CooldownSeconds <= 0.0f))
     {
+        // Invalid miracle or the selected miracle is on cooldown.
         return 0.0f;
     }
 
-    const double* LastCastTime = LastCastTimes.Find(Miracle);
+    const double* LastCastTime = MiracleLastCastTimeMap.Find(Miracle);
     if(!LastCastTime)
     {
+        // Miracle has not been cast yet.
         return 0.0f;
     }
 
-    const double Elapsed = pWorld->GetTimeSeconds() - *LastCastTime;
-    return(FMath::Max(0.0f, Miracle->CooldownSeconds - static_cast<float>(Elapsed)));
+    const double ElapsedTime = pWorld->GetTimeSeconds() - *LastCastTime;
+    return(FMath::Max(0.0f, Miracle->CooldownSeconds - static_cast<float>(ElapsedTime)));
 }
 
 // Validates a prospective miracle cast without changing the gameplay state.
@@ -110,41 +121,35 @@ FGodGameMiracleCastCheck UGodGameMiracleComponent::CanCastMiracle(UGodGameMiracl
     FGodGameMiracleCastCheck Result;
 
     // Local failure reporting.
-    //  TODO (trent, 8/24/26): Surface this.
-    auto Fail = [&Result](EGodGameMiracleCastFailure Reason, const FText& Message)
+    auto Fail = [&Result](const EGodGameMiracleCastFailure Reason, const FText& Message)
     {
         Result.bCanCast = false;
         Result.FailureReason = Reason;
         Result.Message = Message;
     };
-
-    if(!Miracle)
+    
+    // Check valid Miracle and cooldown.
+    if(!Miracle || (GetCooldownRemaining(Miracle) > 0.0f))
     {
-        Fail(EGodGameMiracleCastFailure::NoMiracleSelected, NSLOCTEXT("GodGame", "NoMiracle", "No miracle selected."));
+        Fail(EGodGameMiracleCastFailure::NoMiracleSelectedOrOnCooldown, NSLOCTEXT("GodGame", "NoMiracleOrMiracleCooldown", "No miracle selected or is on cooldown."));
         return Result;
     }
 
-    const bool bHasActorTarget = IsValid(Hit.GetActor());
-    const bool bValidTarget = Hit.bBlockingHit && (Miracle->TargetingMode != EMiracleTargetingMode::Actor || bHasActorTarget);
-
-    if(!bValidTarget)
+    // Check for valid target.
+    if(!Hit.bBlockingHit || !(Miracle->TargetingMode != EMiracleTargetingMode::Actor || IsValid(Hit.GetActor())))
     {
         Fail(EGodGameMiracleCastFailure::InvalidTarget, NSLOCTEXT("GodGame", "InvalidTarget", "Invalid miracle target."));
         return Result;
     }
 
+    // Cast range check.
     if((Miracle->MaxCastRange > 0.0f) && (FVector::DistSquared(GetCastOrigin(), Hit.ImpactPoint) > FMath::Square(Miracle->MaxCastRange)))
     {
         Fail(EGodGameMiracleCastFailure::OutOfRange, NSLOCTEXT("GodGame", "OutOfRange", "Target is out of range."));
         return Result;
     }
 
-    if(GetCooldownRemaining(Miracle) > 0.0f)
-    {
-        Fail(EGodGameMiracleCastFailure::OnCooldown, NSLOCTEXT("GodGame", "OnCooldown", "Miracle is on cooldown."));
-        return Result;
-    }
-
+    // Ensure the player has enough Influence to cast the Miracle.
     const UGodGameWorldSubsystem* pSubsystem = GetWorld() ? GetWorld()->GetSubsystem<UGodGameWorldSubsystem>() : nullptr;
     if(!pSubsystem || (pSubsystem->GetInfluence() < Miracle->InfluenceCost))
     {
@@ -171,6 +176,7 @@ bool UGodGameMiracleComponent::CastMiracleFromHit(UGodGameMiracleDefinition* Mir
         return false;
     }
 
+    // Ensure the player has enough Influence to cast the Miracle.
     UGodGameWorldSubsystem* Sim = pWorld->GetSubsystem<UGodGameWorldSubsystem>();
     if(!Sim || !Sim->TrySpendInfluence(Miracle->InfluenceCost))
     {
@@ -183,6 +189,7 @@ bool UGodGameMiracleComponent::CastMiracleFromHit(UGodGameMiracleDefinition* Mir
     FRotator SpawnRotation = FRotator::ZeroRotator;
     if(Miracle->bAlignToSurfaceNormal)
     {
+        // Align the spawn rotation to the surface normal.
         SpawnRotation = FRotationMatrix::MakeFromZ(Hit.ImpactNormal).Rotator();
     }
 
@@ -206,21 +213,21 @@ bool UGodGameMiracleComponent::CastMiracleFromHit(UGodGameMiracleDefinition* Mir
     }
 
 	// Native prototype fallback: every miracle visibly pulses and improves nearby wellbeing/faith.
-	// Blueprint effect actors remain free to add authored presentation and specialized behavior.
-	const float Radius = FMath::Max(100.0f, Miracle->EffectRadius);
-	DrawDebugSphere(pWorld, Hit.ImpactPoint, Radius, 32, FColor(60, 170, 255), false, 2.0f, 0, 5.0f);
-	UGodGameBlueprintLibrary::ModifyNeedInRadius(this, Hit.ImpactPoint, Radius, EVillagerNeed::Hunger, 0.25f, FGameplayTagContainer());
-	UGodGameBlueprintLibrary::ModifyNeedInRadius(this, Hit.ImpactPoint, Radius, EVillagerNeed::Safety, 0.10f, FGameplayTagContainer());
-	UGodGameBlueprintLibrary::ModifyFaithInRadius(this, Hit.ImpactPoint, Radius, 0.08f, FGameplayTagContainer());
+	const float Radius = FMath::Max(DefaultMiracleRadius, Miracle->EffectRadius);
+	DrawDebugSphere(pWorld, Hit.ImpactPoint, Radius, 32, DefaultMiracleDebugDrawColor, false, 5.0f, 0, 5.0f);
+	UGodGameBlueprintLibrary::ModifyNeedInRadius(this, Hit.ImpactPoint, Radius, EVillagerNeed::Hunger, DefaultMiracleHungerModifier, FGameplayTagContainer());
+	UGodGameBlueprintLibrary::ModifyNeedInRadius(this, Hit.ImpactPoint, Radius, EVillagerNeed::Safety, DefaultMiracleSafetyModifier, FGameplayTagContainer());
+	UGodGameBlueprintLibrary::ModifyFaithInRadius(this, Hit.ImpactPoint, Radius, DefaultMiracleFaithModifier, FGameplayTagContainer());
 
-    LastCastTimes.Add(Miracle, pWorld->GetTimeSeconds());
+    // Set the last cast time for the miracle (to track cooldown).
+    MiracleLastCastTimeMap.Add(Miracle, pWorld->GetTimeSeconds());
     
     // Broadcast the miracle cast event.
     OnMiracleCast.Broadcast(Miracle, SpawnedActor);
     return true;
 }
 
-// Attempts to cast SelectedMiracle at a cursor hit.
+// Attempts to cast the selected miracle at a cursor trace.
 bool UGodGameMiracleComponent::CastSelectedMiracleFromHit(const FHitResult& Hit, AActor*& SpawnedActor, FGodGameMiracleCastCheck& ResultOut)
 {
     return(CastMiracleFromHit(SelectedMiracle, Hit, SpawnedActor, ResultOut));
@@ -231,6 +238,7 @@ void UGodGameMiracleComponent::UpdatePreview(const FHitResult& Hit)
 {
     if(!SelectedMiracle)
     {
+        // Invalid state; should have the native fallback.
         HidePreview();
         return;
     }

@@ -28,6 +28,11 @@ void UGodGameWorldSubsystem::RefreshFaithMetrics()
     float FaithSum = 0.0f;
     float InfluenceRateNew = 0.0f;
 
+    // Get the current state of the simulation to avoid broadcasting change events if there is no actual change.
+    int32 BelieverCountOld = BelieverCount;
+    float AverageFaithOld = AverageFaith;
+    float FaithInfluencePerSecondOld = FaithInfluencePerSecond;
+
     for(auto It = FaithComponents.CreateIterator(); It; ++It)
     {
         UFaithComponent* pFaithComponent = It->Get();
@@ -47,13 +52,23 @@ void UGodGameWorldSubsystem::RefreshFaithMetrics()
         }
     }
 
+    // Update the simulation state.
     BelieverCount = BelieverCountNew;
     AverageFaith = (ValidCount > 0) ? (FaithSum/ValidCount) : 0.0f;
     FaithInfluencePerSecond = InfluenceRateNew;
 
-    // Broadcast faith metrics changed.
-    //  TODO (trent, 8/24/26): Ensure there actually *is* a change.
-    OnFaithMetricsChanged.Broadcast(BelieverCount, AverageFaith, FaithInfluencePerSecond);
+    // Check for a change in the simulation state before broadcasting to ensure there was a change.
+    if((BelieverCount != BelieverCountOld) || (AverageFaith != AverageFaithOld) || (FaithInfluencePerSecond != FaithInfluencePerSecondOld))
+    {
+        // Broadcast faith metrics changed.
+        OnFaithMetricsChanged.Broadcast(BelieverCount, AverageFaith, FaithInfluencePerSecond);
+    }
+}
+
+// Influence accessor.
+float UGodGameWorldSubsystem::GetInfluence() const
+{
+    return Influence;
 }
 
 // Attempts to deduct influence without allowing a negative balance.
@@ -124,6 +139,7 @@ void UGodGameWorldSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
     // Initialize from default settings.
     const UGodGameSettings* Settings = GetDefault<UGodGameSettings>();
+
     SimulationInterval = FMath::Max(0.05f, Settings->SimulationInterval);
     MaxInfluence = FMath::Max(0.0f, Settings->MaxInfluence);
     Influence = FMath::Clamp(Settings->StartingInfluence, 0.0f, MaxInfluence);

@@ -16,7 +16,7 @@ UFaithComponent::UFaithComponent()
 // Adds a signed delta to Faith and clamps the result to [0.0, 1.0].
 float UFaithComponent::ModifyFaith(float Delta)
 {
-    return SetFaith(Faith + Delta);
+    return(SetFaith(Faith + Delta));
 }
 
 // Replaces Faith with a clamped value and broadcasts changes.

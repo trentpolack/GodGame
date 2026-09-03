@@ -38,11 +38,11 @@ public:
 	 */
 	AGodGamePlayerController();
 
-	// Miracle casting state. Created natively so the prototype controller works without Blueprint setup.
+	// Miracle casting state. Created natively so the prototype controller works without blueprint setup.
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "GodGame|Miracle")
 	TObjectPtr<UGodGameMiracleComponent> MiracleComponent;
 
-	// Rain definition selected on play and when the 1 key is pressed.
+	// Rain Miracle definition; used as a prototype fallback.
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "GodGame|Miracle")
 	TSoftClassPtr<UGodGameMiracleDefinition> RainMiracleClass;
 
@@ -59,11 +59,11 @@ public:
 	float DefaultTraceDistance = 100000.0f;
 
 	// Actor currently selected by this controller, or null when no selection is active.
-	UPROPERTY(BlueprintReadOnly, Category = "GodGame|Selection")
+	UPROPERTY(BlueprintReadOnly, Transient, AdvancedDisplay, Category = "GodGame|Transient|Selection")
 	TObjectPtr<AActor> SelectedActor;
 
 	// Event raised after SelectedActor changes.
-	UPROPERTY(BlueprintAssignable, Category = "GodGame|Selection")
+	UPROPERTY(BlueprintAssignable, Category = "GodGame|Selection|Events")
 	FOnGodGameSelectionChanged OnSelectionChanged;
 
 	/**
