@@ -205,7 +205,7 @@ void UCharacterNeedsComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 			for(const FGodGameNeedState& NeedState : Needs)
 			{
 				const float NeedValue = NeedState.Value;
-				DrawDebugString(GetWorld(), TextLocation + DebugDrawLineOffset*Index, FString::Printf(TEXT("%s: %.2f\f"), *NeedState.Need.ToString(), NeedValue), Owner, FColor::MakeRedToGreenColorFromScalar(1.0f - NeedValue), PrimaryComponentTick.TickInterval*1.1f, false, DebugDrawScale);
+				DrawDebugString(GetWorld(), TextLocation + DebugDrawLineOffset*Index, FString::Printf(TEXT("%s: %.2f\f"), *NeedState.Need.GetTagLeafName().ToString(), NeedValue), Owner, FColor::MakeRedToGreenColorFromScalar(1.0f - NeedValue), PrimaryComponentTick.TickInterval*1.1f, false, DebugDrawScale);
 				
 				++Index;
 			}
