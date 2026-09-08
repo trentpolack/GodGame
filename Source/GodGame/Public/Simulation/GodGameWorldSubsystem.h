@@ -33,51 +33,54 @@ protected:
 	TSet<TWeakObjectPtr<UCharacterFaithComponent>> FaithComponents;
 
 	// Unprocessed world time carried between coarse simulation steps.
-	UPROPERTY(Transient)
+	UPROPERTY(BlueprintReadOnly, Transient, AdvancedDisplay, Category = "Transient|GodGame|Gameplay")
 	float SimulationAccumulator = 0.0f;
 
 	// Duration of each coarse simulation step in seconds.
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, AdvancedDisplay, Category = "Config|GodGame|Gameplay")
 	float SimulationInterval = 0.5f;
 
 	// Baseline influence generated each second regardless of population faith.
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, AdvancedDisplay, Category = "Config|GodGame|Gameplay")
 	float PassiveInfluencePerSecond = 0.0f;
 
 	// Whether FaithInfluencePerSecond is included in influence generation.
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, Category = "Config|GodGame|Gameplay")
 	uint8 bGenerateInfluenceFromFaith : 1 = true;
 	
 	/**
 	 * Refreshes population metrics and applies passive and faith-based influence generation.
-	 * @param StepSeconds Duration of the coarse simulation step in seconds.
+	 * @param DeltaSeconds Duration of the coarse simulation step in seconds.
 	 */
-	void RunSimulationStep(float StepSeconds);
+	UFUNCTION(Category = "GodGame|Gameplay")
+	virtual void RunSimulationStep(float DeltaSeconds);
 
 	/**
 	 * Recalculates believer count, average faith, and faith influence generation.
 	 */
-	void RefreshFaithMetrics();
+	UFUNCTION(Category = "GodGame|Gameplay")
+	virtual void RefreshFaithMetrics();
 
 public:
+	// TODO (trent, 9/8/26): Need to data-drive this.
 	// Current spendable influence, clamped to [0, MaxInfluence].
-	UPROPERTY(BlueprintReadOnly, Transient, AdvancedDisplay, Category = "GodGame|Transient|Gameplay")
+	UPROPERTY(BlueprintReadOnly, Transient, AdvancedDisplay, Category = "Transient|GodGame|Gameplay")
 	float Influence = 0.0f;
 
 	// Maximum influence the subsystem can store.
-	UPROPERTY(BlueprintReadOnly, Transient, AdvancedDisplay, Category = "GodGame|Transient|Gameplay")
+	UPROPERTY(BlueprintReadOnly, Transient, AdvancedDisplay, Category = "Transient|GodGame|Gameplay")
 	float MaxInfluence = 100.0f;
 
 	// Number of registered faith components currently meeting their believer thresholds.
-	UPROPERTY(BlueprintReadOnly, Transient, AdvancedDisplay, Category = "GodGame|Transient|Gameplay")
+	UPROPERTY(BlueprintReadOnly, Transient, AdvancedDisplay, Category = "Transient|GodGame|Gameplay")
 	int32 BelieverCount = 0;
 
 	// Mean faith value across all valid registered faith components.
-	UPROPERTY(BlueprintReadOnly, Transient, AdvancedDisplay, Category = "GodGame|Transient|Gameplay")
+	UPROPERTY(BlueprintReadOnly, Transient, AdvancedDisplay, Category = "Transient|GodGame|Gameplay")
 	float AverageFaith = 0.0f;
 
 	// Total influence generated per second by registered faith components.
-	UPROPERTY(BlueprintReadOnly, Transient, AdvancedDisplay, Category = "GodGame|Transient|Gameplay")
+	UPROPERTY(BlueprintReadOnly, Transient, AdvancedDisplay, Category = "Transient|GodGame|Gameplay")
 	float FaithInfluencePerSecond = 0.0f;
 
 	// Event raised whenever stored influence changes.
@@ -118,7 +121,7 @@ public:
 	void SetInfluence(float InfluenceNew);
 
 	/** 
-	 * Return current influence remapped into the range [0, 1].
+	 * Return current influence remapped into the range `[0.0, 1.0]`.
 	 * @return Current influence divided by maximum influence, or zero when the maximum is zero.
 	 */
 	UFUNCTION(BlueprintPure, Category = "GodGame|Influence")
@@ -135,12 +138,14 @@ public:
 	 * Adds a valid faith component to population aggregation.
 	 * @param FaithComponent The component to register.
 	 */
+	UFUNCTION()
 	void RegisterFaithComponent(UCharacterFaithComponent* FaithComponent);
 
 	/**
 	 * Removes a faith component from population aggregation.
 	 * @param FaithComponent The component to unregister.
 	 */
+	UFUNCTION()
 	void UnregisterFaithComponent(UCharacterFaithComponent* FaithComponent);
 
 	// UWorldSubsystem.

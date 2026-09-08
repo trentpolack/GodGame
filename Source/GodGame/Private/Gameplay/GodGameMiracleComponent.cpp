@@ -18,11 +18,11 @@
 // Constants.
 const float UGodGameMiracleComponent::kMinimumMiracleRadius = 100.0f;
 
-const float UGodGameMiracleComponent::kDefaultMiracleHungerModifier = 0.1f;
-const float UGodGameMiracleComponent::kDefaultMiracleRestModifier = 0.1f;
-const float UGodGameMiracleComponent::kDefaultMiracleFearModifier = 0.05f;
-const float UGodGameMiracleComponent::kDefaultMiracleFaithModifier = 0.08f;
-const float UGodGameMiracleComponent::kDefaultMiracleSocializationModifier = 0.075f;
+const float UGodGameMiracleComponent::kDefaultMiracleHungerModifier = -0.1f;
+const float UGodGameMiracleComponent::kDefaultMiracleRestModifier = -0.1f;
+const float UGodGameMiracleComponent::kDefaultMiracleFearModifier = -0.05f;
+const float UGodGameMiracleComponent::kDefaultMiracleFaithModifier = -0.08f;
+const float UGodGameMiracleComponent::kDefaultMiracleSocializationModifier = -0.075f;
 
 const FColor UGodGameMiracleComponent::kDefaultMiracleDebugDrawColor = FColor(60, 170, 255);
 

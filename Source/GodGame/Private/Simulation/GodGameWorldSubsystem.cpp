@@ -5,18 +5,21 @@
 
 #include "Core/GodGameSettings.h"
 #include "Simulation/CharacterFaithComponent.h"
+#include "GodGameNativeGameplayTags.h"
+#include "Systems/SystemicWorldSubsystem.h"
+#include "Systems/Events/EventData/SystemicScalarEventData.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(GodGameWorldSubsystem)
 
 // Refreshes population metrics and applies passive and faith-based influence generation.
-void UGodGameWorldSubsystem::RunSimulationStep(float StepSeconds)
+void UGodGameWorldSubsystem::RunSimulationStep(float DeltaSeconds)
 {
     RefreshFaithMetrics();
 
-    const float GeneratedPerSecond = PassiveInfluencePerSecond + (bGenerateInfluenceFromFaith ? FaithInfluencePerSecond : 0.0f);
-    if (!FMath::IsNearlyZero(GeneratedPerSecond))
+    const float influenceGeneratedPerSecond = PassiveInfluencePerSecond + (bGenerateInfluenceFromFaith ? FaithInfluencePerSecond : 0.0f);
+    if(!FMath::IsNearlyZero(influenceGeneratedPerSecond))
     {
-        AddInfluence(GeneratedPerSecond * StepSeconds);
+        AddInfluence(influenceGeneratedPerSecond*DeltaSeconds);
     }
 }
 
@@ -136,6 +139,14 @@ bool UGodGameWorldSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 void UGodGameWorldSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
     Super::Initialize(Collection);
+
+    Collection.InitializeDependency<USystemicWorldSubsystem>();
+	if(USystemicWorldSubsystem* Systems = GetWorld()->GetSubsystem<USystemicWorldSubsystem>())
+	{
+		Systems->AddEventStructMapping(TAG_GodGame_Event_Need_Changed, FSystemicScalarEventData::StaticStruct());
+		Systems->AddEventStructMapping(TAG_GodGame_Event_Need_Critical, FSystemicScalarEventData::StaticStruct());
+		Systems->AddEventStructMapping(TAG_GodGame_Event_Need_Recovered, FSystemicScalarEventData::StaticStruct());
+	}
 
     // Initialize from default settings.
     const UGodGameSettings* Settings = GetDefault<UGodGameSettings>();

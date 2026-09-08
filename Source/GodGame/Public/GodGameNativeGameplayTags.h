@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2026 Trent Polack. All Rights Reserved.
+// Copyright (c) 2026 Trent Polack. All Rights Reserved.
 // Licensed under the MIT License.
 
 #pragma once
@@ -19,6 +19,11 @@ GODGAME_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_GodGame_Need_Rest);								// A c
 GODGAME_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_GodGame_Need_Fear);								// A character's need for safety ([0.0, 1.0] where 1.0 is scared).
 GODGAME_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_GodGame_Need_Faith);								// A character's need for faith ([0.0, 1.0] where 1.0 has no faith).
 GODGAME_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_GodGame_Need_Socialization);						// A character's need for socialization ([0.0, 1.0] where 1.0 needs socialization).
+
+// Need lifecycle events dispatched through JoyCore.
+GODGAME_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_GodGame_Event_Need_Changed);						// Event for character need changes.
+GODGAME_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_GodGame_Event_Need_Critical);					// Event for a character's need being critical.
+GODGAME_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_GodGame_Event_Need_Recovered);					// Event for a character's need being recovered (non-critical).
 
 /**
  *	Miracle Type Tags.

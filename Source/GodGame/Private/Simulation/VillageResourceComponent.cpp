@@ -20,38 +20,39 @@ UVillageResourceComponent::UVillageResourceComponent()
 FGodGameResourceState* UVillageResourceComponent::FindResource(const FGameplayTag& ResourceTag)
 {
     return(Resources.FindByPredicate([ResourceTag](const FGodGameResourceState& State)
-    {
-        return(State.ResourceTag.MatchesTagExact(ResourceTag));
-    }));
+        {
+            return(State.ResourceTag.MatchesTagExact(ResourceTag));
+        }));
 }
 
 // Finds a read-only resource state by exact tag.
 const FGodGameResourceState* UVillageResourceComponent::FindResource(const FGameplayTag& ResourceTag) const
 {
     return(Resources.FindByPredicate([ResourceTag](const FGodGameResourceState& State)
-    {
-        return(State.ResourceTag.MatchesTagExact(ResourceTag));
-    }));
+        {
+            return(State.ResourceTag.MatchesTagExact(ResourceTag));
+        }));
 }
 
 // Adds a signed amount to a resource, creating its state when absent and clamping to capacity.
 float UVillageResourceComponent::AddResource(const FGameplayTag& ResourceTag, float Amount)
 {
     FGodGameResourceState* Resource = FindResource(ResourceTag);
-    if (!Resource)
+    if(!Resource)
     {
         FGodGameResourceState& NewResource = Resources.AddDefaulted_GetRef();
         NewResource.ResourceTag = ResourceTag;
         Resource = &NewResource;
     }
 
-    const float OldAmount = Resource->Amount;
+    // Modify the resource amount.
+    const float amountOld = Resource->Amount;
     Resource->Amount = FMath::Clamp(Resource->Amount + Amount, 0.0f, FMath::Max(0.0f, Resource->Capacity));
-    const float Delta = Resource->Amount - OldAmount;
+    const float resourceDelta = Resource->Amount - amountOld;
 
-    if (!FMath::IsNearlyZero(Delta))
+    if(!FMath::IsNearlyZero(resourceDelta))
     {
-        OnResourceChanged.Broadcast(ResourceTag, Resource->Amount, Delta);
+        OnResourceChanged.Broadcast(ResourceTag, Resource->Amount, resourceDelta);
     }
 
     return Resource->Amount;
@@ -60,17 +61,20 @@ float UVillageResourceComponent::AddResource(const FGameplayTag& ResourceTag, fl
 // Attempts to consume a nonnegative resource amount atomically.
 bool UVillageResourceComponent::TryConsumeResource(const FGameplayTag& ResourceTag, float Amount)
 {
-    if (Amount <= 0.0f)
+    if(Amount <= 0.0f)
     {
+        // No change.
         return false;
     }
 
     FGodGameResourceState* pResource = FindResource(ResourceTag);
     if (!pResource || (pResource->Amount < Amount))
     {
+        // Invalid or insufficient resources.
         return false;
     }
 
+    // Modify the resource amount.
     AddResource(ResourceTag, -Amount);
     return true;
 }
@@ -87,14 +91,14 @@ float UVillageResourceComponent::SetResourceAmount(const FGameplayTag& ResourceT
     }
 
     // Set the resource amount to the specified value, clamping it to the resource's capacity.
-    const float AmountOld = pResource->Amount;
+    const float amountOld = pResource->Amount;
     pResource->Amount = FMath::Clamp(AmountNew, 0.0f, FMath::Max(0.0f, pResource->Capacity));
 
-    const float Delta = pResource->Amount - AmountOld;
-    if(!FMath::IsNearlyZero(Delta))
+    const float amountDelta = pResource->Amount - amountOld;
+    if(!FMath::IsNearlyZero(amountDelta))
     {
         // Broadcast the resource change event.
-        OnResourceChanged.Broadcast(ResourceTag, pResource->Amount, Delta);
+        OnResourceChanged.Broadcast(ResourceTag, pResource->Amount, amountDelta);
     }
 
     return pResource->Amount;
@@ -103,15 +107,15 @@ float UVillageResourceComponent::SetResourceAmount(const FGameplayTag& ResourceT
 // Retrieves the current amount of a resource.
 float UVillageResourceComponent::GetResourceAmount(const FGameplayTag& ResourceTag) const
 {
-    const FGodGameResourceState* Resource = FindResource(ResourceTag);
-    return Resource ? Resource->Amount : 0.0f;
+    const FGodGameResourceState* pResource = FindResource(ResourceTag);
+    return(pResource ? pResource->Amount : 0.0f);
 }
 
 // Retrieves resource storage as a fraction of capacity
 float UVillageResourceComponent::GetResourceNormalized(const FGameplayTag& ResourceTag) const
 {
-    const FGodGameResourceState* Resource = FindResource(ResourceTag);
-    return Resource && Resource->Capacity > 0.0f ? Resource->Amount / Resource->Capacity : 0.0f;
+    const FGodGameResourceState* pResource = FindResource(ResourceTag);
+    return(pResource && (pResource->Capacity > 0.0f ? (pResource->Amount/pResource->Capacity) : 0.0f));
 }
 
 // Replaces Resources with Food and Wood entries.
