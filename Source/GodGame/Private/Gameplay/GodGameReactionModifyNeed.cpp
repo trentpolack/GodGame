@@ -36,19 +36,23 @@ bool UGodGameReactionModifyNeed::Execute(const FSystemicEvent& Event, FSystemicR
 		const UActorComponent* pActorComponent = Cast<UActorComponent>(pTarget);
 		const AActor* pTargetActor = pActorComponent ? pActorComponent->GetOwner() : Cast<AActor>(pTarget);
 		pNeeds = IsValid(pTargetActor) ? pTargetActor->FindComponentByClass<UCharacterNeedsComponent>() : nullptr;
-		
-		if(!IsValid(pNeeds))
-		{
-			UE_LOG(LogGodGame, Error, TEXT("ERROR [UGodGameReactionModifyNeed]: This requires a CharacterNeedsComponent on the target or its owning actor: %hs."), __FUNCTION__);
-			return false;
-		}
+	}
+
+	if(!IsValid(pNeeds))
+	{
+		// The target and/or its owning actor don't have a Needs component.
+		Trace.RuleReactionNameAndResultList.Add(TPair<FName, bool>(GetReactionName(), false));
+	
+		UE_LOG(LogGodGame, Error, TEXT("ERROR [UGodGameReactionModifyNeed]: This requires a CharacterNeedsComponent on the target or its owning actor: %hs."), __FUNCTION__);
+		return false;
 	}
 	
 	// Determine the need delta.
 	const FSystemicEventData* pData = Event.EventDataInstance.GetPtr<FSystemicEventData>();
-	const float needModifierFinal = NeedModifier*(bScaleByEventValue && (pData ? pData->Value : 1.0f));
+	const float needModifierFinal = NeedModifier*((bScaleByEventValue && pData) ? pData->Value : 1.0f);
 
-	const bool bSuccess = !FMath::IsNearlyZero(needModifierFinal);
+	// Success means the need delta is non-zero.
+	const bool bSuccess = !FMath::IsNearlyEqual(needModifierFinal, pData->Value);
 	if(bSuccess)
 	{
 		// Modify the need.

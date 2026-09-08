@@ -30,16 +30,17 @@ UCharacterNeedsComponent::UCharacterNeedsComponent()
 // Adds a signed delta to a need, creating its state when absent and clamping to [0.0, 1.0].
 float UCharacterNeedsComponent::ModifyNeed(const FGameplayTag& NeedTag, float Delta)
 {
-	return SetNeedValue(NeedTag, GetNeedValue(NeedTag) + Delta);
+	return(SetNeedValue(NeedTag, GetNeedValue(NeedTag) + Delta));
 }
 
 // Update state before notifications; never retain an array pointer across external callbacks.
 float UCharacterNeedsComponent::SetNeedValue(const FGameplayTag& NeedTag, float ValueNew)
 {
 	const float needValueCurrent = GetNeedValue(NeedTag);
-	if(!NeedTag.IsValid() || !FMath::IsNearlyEqual(needValueCurrent, ValueNew))
+	if(!NeedTag.IsValid() || FMath::IsNearlyEqual(needValueCurrent, ValueNew))
 	{
-		return(GetNeedValue(NeedTag));
+		// Either an invalid need tag or no change.
+		return needValueCurrent;
 	}
 
 	// Get the mutable need state pointer.
@@ -84,27 +85,32 @@ float UCharacterNeedsComponent::SetNeedValue(const FGameplayTag& NeedTag, float 
 	return valueNewClamped;
 }
 
-void UCharacterNeedsComponent::EmitNeedEvent(const FGameplayTag& EventTag, const FGameplayTag& NeedTag, float PreviousValue, float NewValue)
+// Emits a tagged JoyCore payload for a need change event.
+void UCharacterNeedsComponent::EmitNeedEvent(const FGameplayTag& EventTag, const FGameplayTag& NeedTag, float ValuePrevious, float ValueNew)
 {
-	if(!HasBegunPlay() || !IsValid(GetOwner()))
+	AActor *pOwner = GetOwner();
+	if(!HasBegunPlay() || !IsValid(pOwner))
 	{
 		return;
 	}
 
 	// Fill out the data for the event in the JoyCore system.
-	FSystemicEvent Event;
-	Event.EventTag = EventTag;
-	Event.Target = GetOwner();
-	Event.Source = this;
-	Event.ContextTags.AddTag(NeedTag);
-	Event.EventDataInstance.InitializeAs<FSystemicScalarEventData>();
-	FSystemicScalarEventData& Data = Event.GetEventDataMutable<FSystemicScalarEventData>();
-	Data.ScalarTag = NeedTag;
-	Data.PreviousValue = PreviousValue;
-	Data.NewValue = NewValue;
-	Data.Value = NewValue - PreviousValue;
-	Data.Location = GetOwner()->GetActorLocation();
-	USystemicWorldSubsystem::EmitEvent(this, Event);
+	FSystemicEvent event;
+	event.EventTag = EventTag;
+	event.Target = pOwner;
+	event.Source = this;
+	event.ContextTags.AddTag(NeedTag);
+
+	// Initialize this event as a numerical property event change.
+	FSystemicScalarEventData& data = event.EventDataInstance.InitializeAs<FSystemicScalarEventData>();
+	data.ScalarTag = NeedTag;
+	data.ValuePrevious = ValuePrevious;
+	data.ValueNew = ValueNew;
+	data.Value = ValueNew - ValuePrevious;
+	data.Location = pOwner->GetActorLocation();
+	
+	// Emit the event.
+	USystemicWorldSubsystem::EmitEvent(this, event);
 }
 
 bool UCharacterNeedsComponent::IsNeedCritical(const FGameplayTag& NeedTag) const
@@ -140,7 +146,6 @@ bool UCharacterNeedsComponent::TryEat(UVillageResourceComponent* Resources)
 	}
 	
 	// Attempt to consume food.
-	bConsumingFood = false;	
 	if(!Resources->TryConsumeResource(TAG_GodGame_Resource_Food, FoodPerMeal))
 	{
 		return false;
@@ -148,7 +153,7 @@ bool UCharacterNeedsComponent::TryEat(UVillageResourceComponent* Resources)
 
 	// Successfully consumed food.
 	//	TODO (trent, 9/8/26): Need to account for this state properly.
-	bConsumingFood = true;
+	bConsumingFood = false;
 	ModifyNeed(TAG_GodGame_Need_Hunger, -HungerReliefPerMeal);
 	return true;
 }

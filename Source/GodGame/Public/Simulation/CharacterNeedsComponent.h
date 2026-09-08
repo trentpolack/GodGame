@@ -68,13 +68,14 @@ private:
 	uint8 bConsumingFood : 1 = false;
 
 	/**
-	 * Emits a tagged JoyCore payload for a need operation
+	 * Emits a tagged JoyCore payload for a need change event.
 	 * @param EventTag The event tag to emit.
 	 * @param NeedTag The need tag to emit.
-	 * @param PreviousValue The previous urgency value.
-	 * @param NewValue The new urgency value.
+	 * @param ValuePrevious The previous urgency value.
+	 * @param ValueNew The new urgency value.
 	 */
-	virtual void EmitNeedEvent(const FGameplayTag& EventTag, const FGameplayTag& NeedTag, float PreviousValue, float NewValue);
+	UFUNCTION()
+	virtual void EmitNeedEvent(const FGameplayTag& EventTag, const FGameplayTag& NeedTag, float ValuePrevious, float ValueNew);
 
 	/**
 	 * Finds a mutable need state by Gameplay Tag.
